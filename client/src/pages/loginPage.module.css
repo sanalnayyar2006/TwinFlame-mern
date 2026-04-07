@@ -1,0 +1,124 @@
+.container {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.header {
+  padding: var(--space-lg) 0;
+  text-align: center;
+}
+
+.brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top:40;
+  padding-bottom: var(--space-xl);
+}
+
+.heading {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 2.8rem;
+  line-height: 1.1;
+  text-align:center;
+  margin-bottom: var(--space-sm);
+}
+
+.subtext {
+  font-family: var(--font-caveat);
+  font-size: 1.2rem;
+  color: var(--color-primary);
+  margin-bottom: var(--space-xl);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  flex:1;
+  margin-top:5vh
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  position:middle;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding-top:2;
+  color: var(--color-text-muted);
+}
+
+.input {
+  background: var(--color-white-5);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  padding: 14px var(--space-md);
+  color: var(--color-text-light);
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: #f87171;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.button {
+  background: var(--color-primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 16px;
+  border-radius: var(--radius-full);
+  transition: opacity 0.2s;
+  margin-top: var(--space-sm);
+  
+}
+
+.button:hover {
+  opacity: 0.9;
+}
+
+.button:disabled {
+  opacity: 0.6;
+}
+
+.link {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-top:auto;
+}
+
+.link a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
