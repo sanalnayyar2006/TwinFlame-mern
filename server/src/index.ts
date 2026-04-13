@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import connectDB from './config/db'
 import authRoutes from './routes/auth'
-
+import journalRoutes from './routes/journal'
 
 connectDB()
 
@@ -27,7 +27,7 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 app.use('/api/auth', authRoutes)
-
+app.use('/api/journal', journalRoutes)
 app.get('/health', (req, res) => {
   res.json({ status: 'TwinFlame API is running 🔥' })
 })

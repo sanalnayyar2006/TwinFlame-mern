@@ -118,13 +118,16 @@ export const logout = async(req:Request,res:Response):Promise<void>=>{
 
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const user = await User.findById(req.userId).select('-password')
+    const user = await User.findById(req.userId)
+    .select('-password')
+    .populate('partnerId', 'name mood')
     if (!user) {
       res.status(404).json({ message: 'User not found' })
       return
     }
     res.status(200).json({ user })
   } catch (error) {
+    console.error('getMe error:', error)
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -140,11 +143,27 @@ export const linkPartner = async (req: AuthRequest, res: Response): Promise<void
       return
     }
 
+        const coupleId = `${req.userId}_${partner._id}`
+
     // Update both users
-    await User.findByIdAndUpdate(req.userId, { partnerId: partner._id })
-    await User.findByIdAndUpdate(partner._id, { partnerId: req.userId })
+    await User.findByIdAndUpdate(req.userId, { partnerId: partner._id , coupleId})
+    await User.findByIdAndUpdate(partner._id, { partnerId: req.userId, coupleId})
 
     res.status(200).json({ message: 'Partner linked successfully' })
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+//mood
+
+export const updateMood = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { mood } = req.body
+
+    await User.findByIdAndUpdate(req.userId, { mood })
+
+    res.status(200).json({ message: 'Mood updated' })
   } catch (error) {
     res.status(500).json({ message: 'Server error' })
   }

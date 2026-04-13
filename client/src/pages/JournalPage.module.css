@@ -1,0 +1,246 @@
+/* .container {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-bg-dark);
+}
+
+.header {
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(196,95,122,0.1);
+}
+
+.backBtn {
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 1.3rem;
+  padding: 4px 8px;
+}
+
+.brand {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.2rem;
+}
+
+.writeBtn {
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+}
+
+.main {
+  flex: 1;
+  padding: var(--space-lg);
+  padding-bottom: 100px;
+}
+
+/* Empty state */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+}
+
+.emptyText {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.3rem;
+}
+
+.emptySubtext {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.emptyBtn {
+  background: var(--color-primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  margin-top: var(--space-md);
+}
+
+/* Entries */
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.entryCard {
+  background: var(--color-white-5);
+  border: 1px solid rgba(196,95,122,0.1);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.entryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-sm);
+}
+
+.entryTitle {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.entryMeta {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  opacity: 0.8;
+}
+
+.deleteBtn {
+  background: transparent;
+  font-size: 1rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.deleteBtn:hover {
+  opacity: 1;
+}
+
+.entryContent {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+/* Write Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.input {
+  background: var(--color-white-5);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  padding: 14px var(--space-md);
+  color: var(--color-text-light);
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.textarea {
+  background: var(--color-white-5);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  padding: 14px var(--space-md);
+  color: var(--color-text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: none;
+  font-family: var(--font-display);
+  transition: border-color 0.2s;
+}
+
+.textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: #f87171;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.submitBtn {
+  background: var(--color-primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 16px;
+  border-radius: var(--radius-full);
+  transition: opacity 0.2s;
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+}
+
+/* Bottom Nav */
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-bg-dark);
+  border-top: 1px solid rgba(196,95,122,0.1);
+  padding: var(--space-sm) var(--space-lg) var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+
+.navItem span:first-child {
+  font-size: 1.3rem;
+}
+
+.navActive {
+  color: var(--color-primary) !important;
+} 

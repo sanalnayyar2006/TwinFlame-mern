@@ -4,7 +4,8 @@
   "scripts": {
   "dev": "nodemon --exec tsx src/index.ts",
   "start": "node dist/index.js",
-  "build": "tsc"
+  "build": "tsc",
+  "seed": "tsx src/config/seed.ts"
 },
   "keywords": [],
   "author": "",

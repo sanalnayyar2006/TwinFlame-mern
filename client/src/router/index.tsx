@@ -4,7 +4,7 @@ import RegisterPage from '../pages/RegisterPage'
 import LinkPartnerPage from '../pages/LinkPartnerPage'
 import DashboardPage from '../pages/DashboardPage'
 import DailyTaskPage from '../pages/DailyTaskPage'
-
+import JournalPage from '../pages/JournalPage'
 const isAuthenticated = () => {
   return !!localStorage.getItem('token')
 }
@@ -37,7 +37,13 @@ const AppRouter = () => {
             <DailyTaskPage />
           </ProtectedRoute>
         } />
+        <Route path="/journal" element={
+        <ProtectedRoute>
+          <JournalPage />
+        </ProtectedRoute>
+    } />
       </Routes>
+      
     </BrowserRouter>
   )
 }

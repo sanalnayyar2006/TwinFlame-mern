@@ -1,13 +1,14 @@
 import mongoose, {Document,Schema} from 'mongoose'
 
 interface IUser extends Document{
-    id:string;
     name:string;
     email:string;
     password:string;
     coupleCode:string;
     partnerId?:mongoose.Types.ObjectId;
-    createdAt:Date
+    createdAt:Date;
+    coupleId:string;
+    mood?:string;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -17,6 +18,8 @@ const UserSchema = new Schema<IUser>(
         password: { type: String, required: true, minlength: 6 },
         coupleCode: { type: String, required: true, unique: true },
         partnerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+        coupleId: { type: String, default: null },
+        mood: { type: String, default: null },
     },
     {timestamps:true}
 )
