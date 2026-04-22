@@ -12,4 +12,4 @@ const QuestionSchema = new Schema<IQuestion>({
 })
 
 const Question = mongoose.model<IQuestion>('Question',QuestionSchema)
-export default Question  
+export default Question
