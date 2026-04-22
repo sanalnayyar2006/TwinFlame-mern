@@ -6,7 +6,7 @@ import { AuthRequest } from '../middleware/auth'
 // GET all journal entries for the couple
 export const getEntries = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const user = await User.findById(req.userId)
+    const user = req.user
     if (!user?.coupleId) {
       res.status(400).json({ message: 'No couple linked' })
       return
@@ -32,7 +32,7 @@ export const createEntry = async (req: AuthRequest, res: Response): Promise<void
       return
     }
 
-    const user = await User.findById(req.userId)
+    const user = req.user
     if (!user?.coupleId) {
       res.status(400).json({ message: 'No couple linked' })
       return
@@ -41,7 +41,7 @@ export const createEntry = async (req: AuthRequest, res: Response): Promise<void
     const entry = await Journal.create({
       title,
       content,
-      author: req.userId,
+      author: user._id,
       coupleId: user.coupleId
     })
 
@@ -64,7 +64,13 @@ export const deleteEntry = async (req: AuthRequest, res: Response): Promise<void
     }
 
     // Only author can delete
-    if (entry.author.toString() !== req.userId) {
+    const user = req.user
+    if (!user) {
+      res.status(401).json({ message: 'Not authorized' })
+      return
+    }
+
+    if (entry.author.toString() !== user._id.toString()) {
       res.status(403).json({ message: 'Not authorized to delete this entry' })
       return
     }

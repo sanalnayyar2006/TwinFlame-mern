@@ -7,6 +7,11 @@ const LoginPage = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // debug state to help mobile debugging when remote inspector isn't available
+  const [debugUrl, setDebugUrl] = useState<string | null>(null)
+  const [debugStatus, setDebugStatus] = useState<number | null>(null)
+  const [debugBody, setDebugBody] = useState<string | null>(null)
+  const [debugError, setDebugError] = useState<string | null>(null)
   const navigate = useNavigate()
 
   const handleLogin = async () => {
@@ -17,29 +22,55 @@ const LoginPage = () => {
     try {
       setLoading(true)
       setError('')
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      setDebugError(null)
+  // use Vite proxy in development (empty API_BASE so request goes to /api)
+  const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
+  const url = `${API_URL}/api/auth/login`
+      setDebugUrl(url)
+
+      // add a timeout so the UI doesn't stay 'Signing in...' forever
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal
       })
-      const data = await res.json()
+      clearTimeout(timeoutId)
+
+      let bodyText: string | Record<string, unknown>
+      try {
+        bodyText = await res.json()
+        setDebugBody(JSON.stringify(bodyText))
+      } catch {
+        const t = await res.text()
+        bodyText = t
+        setDebugBody(t)
+      }
+
+      setDebugStatus(res.status)
+
       if (!res.ok) {
-        setError(data.message)
+        // show raw response as message
+        const message = typeof bodyText === 'object' ? JSON.stringify(bodyText) : String(bodyText)
+        setError(message || 'Something went wrong')
         return
       }
+
       // store JWT returned from server (dev-friendly). Keep cookie for production if used.
-      if (data.token) {
-        localStorage.setItem('token', data.token)
+      const jsonBody = typeof bodyText === 'object' && bodyText ? (bodyText as Record<string, unknown>) : null
+      if (jsonBody && typeof jsonBody['token'] === 'string') {
+        localStorage.setItem('token', jsonBody['token'] as string)
       } else {
-        // fallback: store user id if token not returned
-        localStorage.setItem('token', data.user?.id ?? '')
+        const userId = jsonBody && typeof jsonBody['user'] === 'object' ? (jsonBody['user'] as Record<string, unknown>)['id'] : undefined
+        localStorage.setItem('token', userId ? String(userId) : '')
       }
       navigate('/dashboard')
     } catch (err) {
-      // log error for debugging
-  console.error(err)
+      console.error(err)
+      setDebugError(String(err))
       setError('Something went wrong')
     } finally {
       setLoading(false)
@@ -93,6 +124,14 @@ const LoginPage = () => {
             Don't have an account?{' '}
             <Link to="/register">Create one</Link>
           </p>
+          {/* Debug panel shown on-screen to help mobile debugging without remote inspector */}
+          <div style={{marginTop:12, padding:8, border:'1px solid rgba(0,0,0,0.06)', borderRadius:6, fontSize:12}}>
+            <strong>Debug</strong>
+            <div>URL: <small>{debugUrl ?? '-'}</small></div>
+            <div>Status: <small>{debugStatus ?? '-'}</small></div>
+            <div>Body: <pre style={{whiteSpace:'pre-wrap', maxHeight:120, overflow:'auto'}}>{debugBody ?? '-'}</pre></div>
+            <div>Error: <small>{debugError ?? '-'}</small></div>
+          </div>
         </div>
       </main>
     </div>

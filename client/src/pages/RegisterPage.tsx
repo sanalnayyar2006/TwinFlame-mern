@@ -22,8 +22,9 @@ const RegisterPage = () => {
     try {
       setLoading(true)
       setError('')
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+  // use Vite proxy in development so phone only needs to reach Vite dev server
+  const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
+  const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

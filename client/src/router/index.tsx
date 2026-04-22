@@ -5,6 +5,7 @@ import LinkPartnerPage from '../pages/LinkPartnerPage'
 import DashboardPage from '../pages/DashboardPage'
 import DailyTaskPage from '../pages/DailyTaskPage'
 import JournalPage from '../pages/JournalPage'
+import TruthDarePage from '../pages/TruthDarePage'
 const isAuthenticated = () => {
   return !!localStorage.getItem('token')
 }
@@ -42,6 +43,11 @@ const AppRouter = () => {
           <JournalPage />
         </ProtectedRoute>
     } />
+        <Route path="/truth-dare" element={
+          <ProtectedRoute>
+            <TruthDarePage />
+          </ProtectedRoute>
+        } />
       </Routes>
       
     </BrowserRouter>
