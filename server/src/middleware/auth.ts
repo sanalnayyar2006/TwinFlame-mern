@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import User, { IUser } from '../models/User'
-
+import 'multer'
 export interface AuthRequest extends Request {
   user?: IUser
   userId?: string
-  file?: any
+  file?: Express.Multer.File
 }
 
 const authMiddleware = async (

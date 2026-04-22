@@ -1,6 +1,5 @@
 import { Response } from 'express'
 import Journal from '../models/Journal'
-import User from '../models/User'
 import { AuthRequest } from '../middleware/auth'
 
 // GET all journal entries for the couple
