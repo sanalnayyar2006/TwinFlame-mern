@@ -57,3 +57,25 @@ export const uploadPhoto = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Upload failed' })
   }
 }
+
+
+export const getPhotos = async (req:AuthRequest, res: Response) : Promise<void>=>{
+    try{
+        const user = req.user
+        if(!user?.coupleId){
+            res.status(400).json({message:"No user linked"})
+            return
+        }
+
+        const images = await Gallery.find({coupleId: user.coupleId})
+            .populate('author','name')
+            .sort({createdAt:-1})
+        
+            res.status(200).json({images})
+    }catch(err){
+        res.status(500).json({message:'Storage error'})
+    }
+}
+
+
+//DELETE THE photo
