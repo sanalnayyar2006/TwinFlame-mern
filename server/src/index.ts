@@ -7,6 +7,7 @@ import connectDB from './config/db'
 import authRoutes from './routes/auth'
 import journalRoutes from './routes/journal'
 import truthDareRoutes from './routes/TruthDare'
+import galleryRoutes from './routes/gallery'
 import './config/cloudinary'
 connectDB()
 
@@ -30,6 +31,7 @@ app.use(cookieParser())
 app.use('/api/auth', authRoutes)
 app.use('/api/journal', journalRoutes)
 app.use('/api/truth-dare', truthDareRoutes)
+app.use('/api/gallery', galleryRoutes)
 app.get('/health', (req, res) => {
   res.json({ status: 'TwinFlame API is running 🔥' })
 })
