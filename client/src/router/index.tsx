@@ -6,6 +6,7 @@ import DashboardPage from '../pages/DashboardPage'
 import DailyTaskPage from '../pages/DailyTaskPage'
 import JournalPage from '../pages/JournalPage'
 import TruthDarePage from '../pages/TruthDarePage'
+import GalleryPage from '../pages/GalleryPage'
 const isAuthenticated = () => {
   return !!localStorage.getItem('token')
 }
@@ -42,6 +43,12 @@ const AppRouter = () => {
         <ProtectedRoute>
           <JournalPage />
         </ProtectedRoute>
+    } />
+
+      <Route path="/gallery" element={
+      <ProtectedRoute>
+        <GalleryPage />
+      </ProtectedRoute>
     } />
         <Route path="/truth-dare" element={
           <ProtectedRoute>

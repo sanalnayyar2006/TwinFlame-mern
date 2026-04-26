@@ -1,7 +1,7 @@
 // In development use the Vite dev server as a proxy to the backend so mobile
 // clients only need to reach the Vite host. In production use the configured
 // VITE_API_URL (e.g. https://api.example.com).
-const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
+const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '')
 const BASE_URL = import.meta.env.DEV ? '/api' : `${API_BASE}/api`
 
 const getToken = () => localStorage.getItem('token')

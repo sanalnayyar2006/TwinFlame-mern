@@ -1,7 +1,7 @@
 import {Router} from 'express'
 import multer from 'multer'
 import authMiddleware from '../middleware/auth'
-import { uploadPhoto, getPhotos, deleteImage } from '../controllers/Gallery'
+import { uploadPhoto, getPhotos, deleteImage } from '../controllers/gallery'
 
 
 const router = Router()
