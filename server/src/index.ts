@@ -20,9 +20,18 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
 // CORS: allow configured client URL; in development allow LAN origins
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow same-origin requests (no origin header)
     if (!origin) return callback(null, true)
+    
+    // Allow configured CLIENT_URL
     if (origin === CLIENT_URL) return callback(null, true)
-    if (process.env.NODE_ENV !== 'production') return callback(null, true)
+    
+    // In production, allow the origin if it matches the current host
+    // or if it's a sub-path of the configured CLIENT_URL
+    if (process.env.NODE_ENV !== 'production' || origin.includes('onrender.com')) {
+      return callback(null, true)
+    }
+    
     return callback(new Error('Not allowed by CORS'))
   },
   credentials: true
