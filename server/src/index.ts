@@ -38,17 +38,28 @@ app.get('/health', (req, res) => {
 })
 
 // Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../../client/dist')
+const isProduction = process.env.NODE_ENV === 'production'
+if (isProduction) {
+  const distPath = path.resolve(__dirname, '../../client/dist')
+  console.log(`🚀 Production mode detected. Serving static files from: ${distPath}`)
+  
   app.use(express.static(distPath))
   
-  // Catch-all route for React Router (using middleware to avoid path-to-regexp issues)
+  // Catch-all route for React Router
   app.use((req, res) => {
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ error: 'API route not found' })
     }
-    res.sendFile(path.join(distPath, 'index.html'))
+    
+    res.sendFile(path.join(distPath, 'index.html'), (err) => {
+      if (err) {
+        console.error('❌ Error sending index.html:', err)
+        res.status(500).send('Error loading frontend. Make sure the client is built.')
+      }
+    })
   })
+} else {
+  console.log('🛠️  Running in development mode.')
 }
 
 
