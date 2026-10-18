@@ -163,6 +163,15 @@ export const updateMood = async (req: AuthRequest, res: Response): Promise<void>
 
     await User.findByIdAndUpdate(req.userId, { mood })
 
+    // Push the mood update to the partner in real time
+    const io = req.app.get('io') as import('socket.io').Server | undefined
+    if (io) {
+      const user = await User.findById(req.userId).select('coupleId')
+      if (user?.coupleId) {
+        io.to(`couple_${user.coupleId}`).emit('mood-updated', { userId: req.userId, mood })
+      }
+    }
+
     res.status(200).json({ message: 'Mood updated' })
   } catch (error) {
     res.status(500).json({ message: 'Server error' })

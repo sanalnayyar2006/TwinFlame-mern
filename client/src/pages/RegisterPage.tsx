@@ -30,9 +30,11 @@ const RegisterPage = () => {
         credentials: 'include',
         body: JSON.stringify({ name, email, password })
       })
-      const data = await res.json()
+      const rawText = await res.text()
+      let data: any = {}
+      try { data = rawText ? JSON.parse(rawText) : {} } catch { data = {} }
       if (!res.ok) {
-        setError(data.message)
+        setError((data.message as string) || rawText || 'Something went wrong')
         return
       }
       // store JWT returned from server (dev-friendly). Keep cookie for production if used.

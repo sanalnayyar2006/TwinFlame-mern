@@ -40,14 +40,13 @@ const LoginPage = () => {
       })
       clearTimeout(timeoutId)
 
-      let bodyText: string | Record<string, unknown>
+      const rawText = await res.text()
+      setDebugBody(rawText)
+      let bodyText: string | Record<string, unknown> = rawText
       try {
-        bodyText = await res.json()
-        setDebugBody(JSON.stringify(bodyText))
+        bodyText = JSON.parse(rawText)
       } catch {
-        const t = await res.text()
-        bodyText = t
-        setDebugBody(t)
+        // keep raw text
       }
 
       setDebugStatus(res.status)

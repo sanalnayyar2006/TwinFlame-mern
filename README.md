@@ -1,13 +1,15 @@
-# TwinFlame - Truth or Dare App
+# TwinFlame
 
-Welcome to TwinFlame, a multi-player "Truth or Dare" application designed for couples and friends. 
+A real-time interactive web platform designed to strengthen couples' relationships through gamified daily activities and shared experiences.
 
-## Tech Stack
+## 🚀 Tech Stack
 
-This project is built using the MERN stack (well, Vite + React + Node.js + Express + MongoDB).
-- **Client:** React, TypeScript, Vite, TailwindCSS, Zustand
-- **Server:** Node.js, Express, TypeScript, Mongoose/MongoDB
-- **Monorepo Management:** pnpm workspaces
+- **Frontend:** React 19, Context API, React Router v7, Vanilla CSS
+- **Backend:** Node.js, Express.js
+- **Database:** MongoDB
+- **Authentication & Security:** Oauth,JWT, CORS
+- **Storage:** Cloudinary
+- **Deployment:** Render, Environment Variables
 
 ## Getting Started
 
