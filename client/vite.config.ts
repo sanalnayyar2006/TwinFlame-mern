@@ -16,6 +16,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api')
+      },
+      // Proxy Socket.IO (HTTP polling + WebSocket upgrades) to the backend
+      '/socket.io': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        ws: true
       }
     }
   }

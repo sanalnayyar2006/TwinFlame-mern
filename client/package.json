@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-  "tunnel": "npx localtunnel --port 8000",
+    "tunnel": "npx localtunnel --port 8000",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -15,6 +15,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.2",
+    "socket.io-client": "^4.8.4",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
