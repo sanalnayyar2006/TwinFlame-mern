@@ -1,45 +1,68 @@
-.container {
+.pageWrapper {
   min-height: 100dvh;
   display: flex;
-  flex-direction: column;
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 0 var(--space-lg);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: radial-gradient(circle at 50% 20%, rgba(212, 99, 127, 0.08), transparent 60%),
+              var(--color-bg-dark);
+}
+
+.card {
+  width: 100%;
+  max-width: var(--container-narrow);
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .header {
-  padding: var(--space-lg) 0;
   text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.brandIcon {
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
 }
 
 .brand {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: -0.01em;
+  color: var(--color-text-light);
+}
+
+.subtext {
+  font-family: var(--font-caveat);
+  font-size: 1.25rem;
+  color: var(--color-primary);
 }
 
 .main {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding-top:40;
-  padding-bottom: var(--space-xl);
 }
 
 .heading {
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 2.8rem;
-  line-height: 1.1;
-  text-align:center;
-  margin-bottom: var(--space-sm);
-}
-
-.subtext {
-  font-family: var(--font-caveat);
-  font-size: 1.2rem;
-  color: var(--color-primary);
+  font-size: 2.2rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-text-light);
   margin-bottom: var(--space-xl);
 }
 
@@ -47,78 +70,88 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  flex:1;
-  margin-top:5vh
 }
 
 .inputGroup {
   display: flex;
   flex-direction: column;
-  position:middle;
   gap: var(--space-xs);
 }
 
 .label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding-top:2;
   color: var(--color-text-muted);
 }
 
 .input {
-  background: var(--color-white-5);
-  border: 1.5px solid rgba(255,255,255,0.1);
+  width: 100%;
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
   border-radius: var(--radius-sm);
-  padding: 14px var(--space-md);
+  padding: 12px var(--space-md);
   color: var(--color-text-light);
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.input:focus {
-  border-color: var(--color-primary);
-}
-
-.input::placeholder {
-  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  min-height: 44px;
 }
 
 .error {
-  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #fca5a5;
   font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
   text-align: center;
 }
 
 .button {
   background: var(--color-primary);
   color: white;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  padding: 16px;
-  border-radius: var(--radius-full);
-  transition: opacity 0.2s;
+  padding: 12px;
+  min-height: 46px;
+  border-radius: var(--radius-sm);
   margin-top: var(--space-sm);
-  
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
-.button:hover {
-  opacity: 0.9;
+.button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
 }
 
 .button:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .link {
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--color-text-muted);
-  margin-top:auto;
+  margin-top: var(--space-md);
 }
 
 .link a {
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .pageWrapper {
+    padding: var(--space-md);
+  }
+  .card {
+    padding: var(--space-lg);
+    box-shadow: none;
+    background: transparent;
+    border: none;
+  }
 }

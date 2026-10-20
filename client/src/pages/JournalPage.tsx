@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../lib/api'
+import { Navigation } from '../components/Navigation'
+import {
+  BookOpenIcon,
+  PlusIcon,
+  TrashIcon,
+  ArrowLeftIcon
+} from '../components/Icons'
 import styles from './JournalPage.module.css'
 
 interface Author {
@@ -21,180 +27,235 @@ const JournalPage = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const fetchEntries = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await api.get('/journal')
+      if (data && data.entries) {
+        setEntries(data.entries)
+      }
+    } catch {
+      setError('Unable to load entries. Please check your connection.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetchEntries()
-  }, [])
+  }, [fetchEntries])
 
-  const fetchEntries = async () => {
-    const data = await api.get('/journal')
-    if (data.entries) {
-      setEntries(data.entries)
-    }
-  }
-
-  const handleCreate = async () => {
-    if (!title || !content) {
-      setError('Please fill in all fields')
+  const handleCreate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!title.trim() || !content.trim()) {
+      setError('Please add both a title and some thoughts.')
       return
     }
     try {
-      setLoading(true)
-      setError('')
-      const data = await api.post('/journal', { title, content })
-      if (data.entry) {
+      setSubmitting(true)
+      setError(null)
+      const data = await api.post('/journal', {
+        title: title.trim(),
+        content: content.trim()
+      })
+      if (data && data.entry) {
         setEntries(prev => [data.entry, ...prev])
         setTitle('')
         setContent('')
         setView('list')
       }
-    } catch (err) {
-      setError('Something went wrong')
+    } catch {
+      setError('Could not save your entry. Please try again.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/journal/${id}`)
-    setEntries(prev => prev.filter(e => e._id !== id))
+    if (!window.confirm('Delete this journal entry?')) return
+    try {
+      setDeletingId(id)
+      await api.delete(`/journal/${id}`)
+      setEntries(prev => prev.filter(e => e._id !== id))
+    } catch {
+      alert('Failed to delete entry.')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      })
+    } catch {
+      return dateStr
+    }
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.pageContainer}>
+      <Navigation />
 
-      {/* Header */}
-      <header className={styles.header}>
-        <button
-          className={styles.backBtn}
-          onClick={() => view === 'write' ? setView('list') : navigate('/dashboard')}
-        >
-          ←
-        </button>
-        <h2 className={styles.brand}>
-          {view === 'list' ? 'Our Journal' : 'New Entry'}
-        </h2>
-        {view === 'list' && (
-          <button
-            className={styles.writeBtn}
-            onClick={() => setView('write')}
-          >
-            + Write
-          </button>
-        )}
-      </header>
-
-      {/* List View */}
-      {view === 'list' && (
-        <main className={styles.main}>
-          {entries.length === 0 ? (
-            <div className={styles.empty}>
-              <p className={styles.emptyIcon}>📖</p>
-              <p className={styles.emptyText}>No entries yet.</p>
-              <p className={styles.emptySubtext}>Write your first memory together.</p>
+      <div className={styles.contentWrap}>
+        {/* Header */}
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            {view === 'write' && (
               <button
-                className={styles.emptyBtn}
-                onClick={() => setView('write')}
+                type="button"
+                className={styles.backBtn}
+                onClick={() => setView('list')}
+                aria-label="Back to journal list"
               >
-                Write first entry
+                <ArrowLeftIcon size={20} />
               </button>
+            )}
+            <div>
+              <h1 className={styles.pageTitle}>
+                {view === 'list' ? 'Shared Journal' : 'New Journal Entry'}
+              </h1>
+              <p className={styles.pageSubtitle}>
+                {view === 'list'
+                  ? 'Private reflections, thoughts, and memories written for each other.'
+                  : 'Capture what is on your heart right now.'}
+              </p>
             </div>
-          ) : (
-            <div className={styles.entries}>
-              {entries.map(entry => (
-                <div key={entry._id} className={styles.entryCard}>
-                  <div className={styles.entryHeader}>
-                    <div>
-                      <h3 className={styles.entryTitle}>{entry.title}</h3>
-                      <p className={styles.entryMeta}>
-                        {entry.author.name} · {formatDate(entry.createdAt)}
-                      </p>
-                    </div>
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDelete(entry._id)}
-                    >
-                      🗑
-                    </button>
-                  </div>
-                  <p className={styles.entryContent}>{entry.content}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      )}
-
-      {/* Write View */}
-      {view === 'write' && (
-        <main className={styles.main}>
-          <div className={styles.form}>
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Title</label>
-              <input
-                className={styles.input}
-                type="text"
-                placeholder="Give this memory a title..."
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-              />
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Your thoughts</label>
-              <textarea
-                className={styles.textarea}
-                placeholder="Write about this moment..."
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                rows={10}
-              />
-            </div>
-
-            {error && <p className={styles.error}>{error}</p>}
-
-            <button
-              className={styles.submitBtn}
-              onClick={handleCreate}
-              disabled={loading}
-            >
-              {loading ? 'Saving...' : 'Save Entry'}
-            </button>
           </div>
-        </main>
-      )}
 
-      {/* Bottom Nav */}
-      <nav className={styles.bottomNav}>
-        <button className={styles.navItem} onClick={() => navigate('/dashboard')}>
-          <span>🏠</span>
-          <span>Home</span>
-        </button>
-        <button className={`${styles.navItem} ${styles.navActive}`}>
-          <span>📖</span>
-          <span>Journal</span>
-        </button>
-        <button className={styles.navItem} onClick={() => navigate('/gallery')}>
-          <span>🖼️</span>
-          <span>Gallery</span>
-        </button>
-        <button className={styles.navItem} onClick={() => navigate('/truth-dare')}>
-          <span>✨</span>
-          <span>T & D</span>
-        </button>
-      </nav>
+          {view === 'list' && (
+            <button
+              type="button"
+              className={styles.writeBtn}
+              onClick={() => setView('write')}
+            >
+              <PlusIcon size={18} />
+              <span>Write Entry</span>
+            </button>
+          )}
+        </header>
 
+        {error && (
+          <div className={styles.errorAlert} role="alert">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className={styles.dismissBtn}>Dismiss</button>
+          </div>
+        )}
+
+        {/* List View */}
+        {view === 'list' && (
+          <main className={styles.main}>
+            {loading ? (
+              <div className={styles.loadingContainer}>
+                <div className={styles.loadingSpinner} />
+                <p>Loading your journal...</p>
+              </div>
+            ) : entries.length === 0 ? (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIconWrap}>
+                  <BookOpenIcon size={32} />
+                </div>
+                <h2 className={styles.emptyTitle}>No entries yet</h2>
+                <p className={styles.emptyDesc}>
+                  Your journal is completely private between you and your partner.
+                  Write down your first memory or gratitude today.
+                </p>
+                <button
+                  type="button"
+                  className={styles.emptyBtn}
+                  onClick={() => setView('write')}
+                >
+                  <PlusIcon size={18} />
+                  <span>Write first entry</span>
+                </button>
+              </div>
+            ) : (
+              <div className={styles.entriesGrid}>
+                {entries.map(entry => (
+                  <article key={entry._id} className={styles.entryCard}>
+                    <div className={styles.entryHeader}>
+                      <div className={styles.entryMeta}>
+                        <span className={styles.authorBadge}>{entry.author?.name || 'Partner'}</span>
+                        <span className={styles.entryDate}>{formatDate(entry.createdAt)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.deleteBtn}
+                        onClick={() => handleDelete(entry._id)}
+                        disabled={deletingId === entry._id}
+                        aria-label={`Delete entry ${entry.title}`}
+                      >
+                        <TrashIcon size={16} />
+                      </button>
+                    </div>
+
+                    <h3 className={styles.entryTitle}>{entry.title}</h3>
+                    <p className={styles.entryContent}>{entry.content}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </main>
+        )}
+
+        {/* Write View */}
+        {view === 'write' && (
+          <main className={styles.main}>
+            <form className={styles.writeForm} onSubmit={handleCreate}>
+              <div className={styles.inputGroup}>
+                <label htmlFor="journal-title" className={styles.label}>Title</label>
+                <input
+                  id="journal-title"
+                  className={styles.input}
+                  type="text"
+                  placeholder="Give this moment a title..."
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label htmlFor="journal-content" className={styles.label}>Your Thoughts</label>
+                <textarea
+                  id="journal-content"
+                  className={styles.textarea}
+                  placeholder="Write freely... only you and your partner will see this."
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  rows={10}
+                />
+              </div>
+
+              <div className={styles.formActions}>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => setView('list')}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={submitting || !title.trim() || !content.trim()}
+                >
+                  {submitting ? 'Saving memory...' : 'Save to Journal'}
+                </button>
+              </div>
+            </form>
+          </main>
+        )}
+      </div>
     </div>
   )
 }
