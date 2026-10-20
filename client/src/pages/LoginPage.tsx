@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { FlameIcon } from '../components/Icons'
 import styles from './loginPage.module.css'
 
 const LoginPage = () => {
@@ -7,14 +8,10 @@ const LoginPage = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  // debug state to help mobile debugging when remote inspector isn't available
-  const [debugUrl, setDebugUrl] = useState<string | null>(null)
-  const [debugStatus, setDebugStatus] = useState<number | null>(null)
-  const [debugBody, setDebugBody] = useState<string | null>(null)
-  const [debugError, setDebugError] = useState<string | null>(null)
   const navigate = useNavigate()
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!email || !password) {
       setError('Please fill in all fields')
       return
@@ -22,15 +19,13 @@ const LoginPage = () => {
     try {
       setLoading(true)
       setError('')
-      setDebugError(null)
-  // use Vite proxy in development (empty API_BASE so request goes to /api)
-  const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
-  const url = `${API_URL}/api/auth/login`
-      setDebugUrl(url)
 
-      // add a timeout so the UI doesn't stay 'Signing in...' forever
+      const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
+      const url = `${API_URL}/api/auth/login`
+
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,98 +36,102 @@ const LoginPage = () => {
       clearTimeout(timeoutId)
 
       const rawText = await res.text()
-      setDebugBody(rawText)
-      let bodyText: string | Record<string, unknown> = rawText
+      let bodyText: Record<string, unknown> | null = null
       try {
         bodyText = JSON.parse(rawText)
       } catch {
-        // keep raw text
+        // fallback
       }
 
-      setDebugStatus(res.status)
-
       if (!res.ok) {
-        // show raw response as message
-        const message = typeof bodyText === 'object' ? JSON.stringify(bodyText) : String(bodyText)
-        setError(message || 'Something went wrong')
+        const message = bodyText && typeof bodyText.message === 'string'
+          ? bodyText.message
+          : 'Invalid email or password'
+        setError(message)
         return
       }
 
-      // store JWT returned from server (dev-friendly). Keep cookie for production if used.
-      const jsonBody = typeof bodyText === 'object' && bodyText ? (bodyText as Record<string, unknown>) : null
-      if (jsonBody && typeof jsonBody['token'] === 'string') {
-        localStorage.setItem('token', jsonBody['token'] as string)
+      if (bodyText && typeof bodyText['token'] === 'string') {
+        localStorage.setItem('token', bodyText['token'] as string)
       } else {
-        const userId = jsonBody && typeof jsonBody['user'] === 'object' ? (jsonBody['user'] as Record<string, unknown>)['id'] : undefined
+        const userId = bodyText && typeof bodyText['user'] === 'object' && bodyText['user']
+          ? (bodyText['user'] as Record<string, unknown>)['id']
+          : undefined
         localStorage.setItem('token', userId ? String(userId) : '')
       }
       navigate('/dashboard')
     } catch (err) {
       console.error(err)
-      setDebugError(String(err))
-      setError('Something went wrong')
+      setError('Unable to connect. Please check your connection.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h2 className={styles.brand}>TwinFlame</h2>
-        <p className={styles.subtext}>Your story continues here.</p>
-
-      </header>
-
-      <main className={styles.main}>
-        <h1 className={styles.heading}>Welcome<br />back.</h1>
-        <div className={styles.form}>
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Email</label>
-            <input
-              className={styles.input}
-              type="email"
-              placeholder="you@email.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
+    <div className={styles.pageWrapper}>
+      <div className={styles.card}>
+        <header className={styles.header}>
+          <div className={styles.brandRow}>
+            <span className={styles.brandIcon}>
+              <FlameIcon size={28} />
+            </span>
+            <h2 className={styles.brand}>TwinFlame</h2>
           </div>
+          <p className={styles.subtext}>Your story continues here.</p>
+        </header>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Password</label>
-            <input
-              className={styles.input}
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
+        <main className={styles.main}>
+          <h1 className={styles.heading}>Welcome back</h1>
 
-          {error && <p className={styles.error}>{error}</p>}
+          <form className={styles.form} onSubmit={handleLogin}>
+            <div className={styles.inputGroup}>
+              <label htmlFor="login-email" className={styles.label}>Email</label>
+              <input
+                id="login-email"
+                className={styles.input}
+                type="email"
+                autoComplete="email"
+                placeholder="you@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
 
-          <button
-            className={styles.button}
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
+            <div className={styles.inputGroup}>
+              <label htmlFor="login-password" className={styles.label}>Password</label>
+              <input
+                id="login-password"
+                className={styles.input}
+                type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+            </div>
 
-          <p className={styles.link}>
-            Don't have an account?{' '}
-            <Link to="/register">Create one</Link>
-          </p>
-          {/* Debug panel shown on-screen to help mobile debugging without remote inspector */}
-          <div style={{marginTop:12, padding:8, border:'1px solid rgba(0,0,0,0.06)', borderRadius:6, fontSize:12}}>
-            <strong>Debug</strong>
-            <div>URL: <small>{debugUrl ?? '-'}</small></div>
-            <div>Status: <small>{debugStatus ?? '-'}</small></div>
-            <div>Body: <pre style={{whiteSpace:'pre-wrap', maxHeight:120, overflow:'auto'}}>{debugBody ?? '-'}</pre></div>
-            <div>Error: <small>{debugError ?? '-'}</small></div>
-          </div>
-        </div>
-      </main>
+            {error && (
+              <div className={styles.error} role="alert">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className={styles.button}
+              disabled={loading}
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+
+            <p className={styles.link}>
+              Don't have an account?{' '}
+              <Link to="/register">Create one</Link>
+            </p>
+          </form>
+        </main>
+      </div>
     </div>
   )
 }

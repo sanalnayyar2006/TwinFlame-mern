@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { FlameIcon } from '../components/Icons'
 import styles from './RegisterPage.module.css'
 
 const RegisterPage = () => {
@@ -10,7 +11,8 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleRegister = async () => {
+  const handleRegister = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!name || !email || !password) {
       setError('Please fill in all fields')
       return
@@ -22,96 +24,120 @@ const RegisterPage = () => {
     try {
       setLoading(true)
       setError('')
-  // use Vite proxy in development so phone only needs to reach Vite dev server
-  const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
-  const res = await fetch(`${API_URL}/api/auth/register`, {
+
+      const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ name, email, password })
       })
+
       const rawText = await res.text()
-      let data: any = {}
-      try { data = rawText ? JSON.parse(rawText) : {} } catch { data = {} }
+      let data: Record<string, unknown> = {}
+      try {
+        data = rawText ? JSON.parse(rawText) : {}
+      } catch {
+        data = {}
+      }
+
       if (!res.ok) {
         setError((data.message as string) || rawText || 'Something went wrong')
         return
       }
-      // store JWT returned from server (dev-friendly). Keep cookie for production if used.
+
       if (data.token) {
-        localStorage.setItem('token', data.token)
+        localStorage.setItem('token', data.token as string)
       } else {
-        localStorage.setItem('token', data.user?.id ?? '')
+        const userObj = data.user as Record<string, unknown> | undefined
+        localStorage.setItem('token', (userObj?.id as string) ?? '')
       }
       navigate('/link-partner')
     } catch (err) {
       console.error(err)
-      setError('Something went wrong')
+      setError('Unable to register. Please check your connection.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h2 className={styles.brand}>TwinFlame</h2>
-      </header>
-
-      <main className={styles.main}>
-        <h1 className={styles.heading}>Begin your<br />story.</h1>
-        <p className={styles.subtext}>Create your space together.</p>
-
-        <div className={styles.form}>
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Your Name</label>
-            <input
-              className={styles.input}
-              type="text"
-              placeholder="Aryan"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
+    <div className={styles.pageWrapper}>
+      <div className={styles.card}>
+        <header className={styles.header}>
+          <div className={styles.brandRow}>
+            <span className={styles.brandIcon}>
+              <FlameIcon size={28} />
+            </span>
+            <h2 className={styles.brand}>TwinFlame</h2>
           </div>
+          <p className={styles.subtext}>Create your space together.</p>
+        </header>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Email</label>
-            <input
-              className={styles.input}
-              type="email"
-              placeholder="you@email.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </div>
+        <main className={styles.main}>
+          <h1 className={styles.heading}>Begin your story</h1>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Password</label>
-            <input
-              className={styles.input}
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
+          <form className={styles.form} onSubmit={handleRegister}>
+            <div className={styles.inputGroup}>
+              <label htmlFor="reg-name" className={styles.label}>Your Name</label>
+              <input
+                id="reg-name"
+                className={styles.input}
+                type="text"
+                autoComplete="name"
+                placeholder="Your name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
 
-          {error && <p className={styles.error}>{error}</p>}
+            <div className={styles.inputGroup}>
+              <label htmlFor="reg-email" className={styles.label}>Email</label>
+              <input
+                id="reg-email"
+                className={styles.input}
+                type="email"
+                autoComplete="email"
+                placeholder="you@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
 
-          <button
-            className={styles.button}
-            onClick={handleRegister}
-            disabled={loading}
-          >
-            {loading ? 'Creating account...' : 'Create account'}
-          </button>
+            <div className={styles.inputGroup}>
+              <label htmlFor="reg-password" className={styles.label}>Password</label>
+              <input
+                id="reg-password"
+                className={styles.input}
+                type="password"
+                autoComplete="new-password"
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+            </div>
 
-          <p className={styles.link}>
-            Already have an account?{' '}
-            <Link to="/login">Sign in</Link>
-          </p>
-        </div>
-      </main>
+            {error && (
+              <div className={styles.error} role="alert">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className={styles.button}
+              disabled={loading}
+            >
+              {loading ? 'Creating account...' : 'Create account'}
+            </button>
+
+            <p className={styles.link}>
+              Already have an account?{' '}
+              <Link to="/login">Sign in</Link>
+            </p>
+          </form>
+        </main>
+      </div>
     </div>
   )
 }
