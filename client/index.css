@@ -1,26 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Caveat:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Caveat:wght@400;600&display=swap');
 
 :root {
-  --color-primary: #c45f7a;
-  --color-accent: #D4795A;
-  --color-deep-plum: #1E1226;
-  --color-bg-dark: #1e1417;
-  --color-text-light: #f1f1f1;
-  --color-text-muted: #9ca3af;
-  --color-white-5: rgba(255,255,255,0.05);
-  --color-white-10: rgba(255,255,255,0.10);
-  --font-display: 'Be Vietnam Pro', sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  /* Brand palette - warm romantic flame & deep wine */
+  --color-primary: #d4637f;
+  --color-primary-hover: #e0728d;
+  --color-primary-muted: #341926;
+  --color-accent: #e07a5f;
+  --color-accent-muted: #381e18;
+
+  /* Solid surfaces and defined borders (No glassmorphism / no frosted blurs) */
+  --color-bg-dark: #140d11;
+  --color-nav-bg: #1a1016;
+  --color-nav-border: #2d1a24;
+  --color-card-bg: #1f131a;
+  --color-surface-elevated: #251720;
+  --color-card-border: #321d2a;
+  --color-card-border-hover: #48273c;
+  --color-input-bg: #170e13;
+  --color-input-border: #361f2e;
+
+  /* Typography */
+  --color-text-light: #f7f5f5;
+  --color-text-muted: #a69ea1;
+  --color-text-dim: #786f73;
+
+  --font-display: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
   --font-caveat: 'Caveat', cursive;
-  --radius-sm: 0.5rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-full: 9999px;
+
+  /* Intentional radius hierarchy */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+
+  /* Spacing */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Layout widths - wider alignment so TwinFlame logo anchors to the left */
+  --container-max: 1240px;
+  --container-narrow: 440px;
 }
 
 * {
@@ -35,21 +61,64 @@ body {
   color: var(--color-text-light);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Keyboard accessibility: visible focus indicator for all interactive controls (R-32) */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 button {
   cursor: pointer;
   border: none;
-  outline: none;
   font-family: var(--font-display);
+  background: transparent;
+  color: inherit;
+  font-size: 0.95rem;
+  transition: background-color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
 }
 
-input {
-  outline: none;
+input, textarea, select {
   font-family: var(--font-display);
+  color: var(--color-text-light);
+  border: 1px solid var(--color-input-border);
+  background: var(--color-input-bg);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+input:focus-visible, textarea:focus-visible {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 0;
 }
 
 a {
   text-decoration: none;
   color: inherit;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--color-primary);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: #321d2a;
+  border-radius: var(--radius-xs);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #48273c;
 }
