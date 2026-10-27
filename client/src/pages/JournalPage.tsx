@@ -5,7 +5,8 @@ import {
   BookOpenIcon,
   PlusIcon,
   TrashIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  XIcon
 } from '../components/Icons'
 import styles from './JournalPage.module.css'
 
@@ -31,6 +32,7 @@ const JournalPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [viewingEntry, setViewingEntry] = useState<JournalEntry | null>(null)
 
   const fetchEntries = useCallback(async () => {
     try {
@@ -181,7 +183,11 @@ const JournalPage = () => {
             ) : (
               <div className={styles.entriesGrid}>
                 {entries.map(entry => (
-                  <article key={entry._id} className={styles.entryCard}>
+                  <article
+                  key={entry._id}
+                  className={styles.entryCard}
+                  onClick={() => setViewingEntry(entry)}
+                >
                     <div className={styles.entryHeader}>
                       <div className={styles.entryMeta}>
                         <span className={styles.authorBadge}>{entry.author?.name || 'Partner'}</span>
@@ -256,6 +262,22 @@ const JournalPage = () => {
           </main>
         )}
       </div>
+
+      {/* Read Modal */}
+      {viewingEntry && (
+        <div className={styles.modalBackdrop} onClick={() => setViewingEntry(null)} role="dialog" aria-modal="true">
+          <div className={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>{viewingEntry.title}</h3>
+              <button type="button" className={styles.modalCloseBtn} onClick={() => setViewingEntry(null)} aria-label="Close"><XIcon size={16} /></button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalMeta}>{viewingEntry.author?.name || 'Partner'} · {formatDate(viewingEntry.createdAt)}</p>
+              <p className={styles.modalContent}>{viewingEntry.content}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
