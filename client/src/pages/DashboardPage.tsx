@@ -61,6 +61,8 @@ const DashboardPage = () => {
   const [taskStatus, setTaskStatus] = useState<'idle' | 'done' | 'skipped'>('idle')
   const [recentJournal, setRecentJournal] = useState<RecentJournal | null>(null)
   const [recentPhoto, setRecentPhoto] = useState<RecentPhoto | null>(null)
+  const [stats, setStats] = useState({ journals: 0, photos: 0, streak: 0 })
+  const [recentActivity, setRecentActivity] = useState<{ type: string; text: string; date: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -105,15 +107,24 @@ const DashboardPage = () => {
         }
       }
 
-      // Fetch latest journal entry for honest quick link
-      try {
-        const journalData = await api.get('/journal')
-        if (journalData.entries && journalData.entries.length > 0) {
-          setRecentJournal(journalData.entries[0])
-        }
-      } catch {
-        // non-blocking
-      }
+       // Fetch latest journal entry for honest quick link
+       try {
+         const journalData = await api.get('/journal')
+         if (journalData.entries && journalData.entries.length > 0) {
+           setRecentJournal(journalData.entries[0])
+           setStats(prev => ({ ...prev, journals: journalData.entries.length }))
+           setRecentActivity(prev => [
+             ...prev,
+             ...journalData.entries.slice(0, 2).map((e: RecentJournal) => ({
+               type: 'journal',
+               text: `New journal: ${e.title}`,
+               date: e.createdAt
+             }))
+           ])
+         }
+       } catch {
+         // non-blocking
+       }
 
       // Fetch latest gallery photo for honest quick link
       try {
@@ -121,12 +132,21 @@ const DashboardPage = () => {
         const galleryRes = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery`, {
           headers: { Authorization: `Bearer ${token}` }
         })
-        if (galleryRes.ok) {
-          const galleryData = await galleryRes.json()
-          if (galleryData.images && galleryData.images.length > 0) {
-            setRecentPhoto(galleryData.images[0])
-          }
-        }
+         if (galleryRes.ok) {
+           const galleryData = await galleryRes.json()
+           if (galleryData.images && galleryData.images.length > 0) {
+             setRecentPhoto(galleryData.images[0])
+             setStats(prev => ({ ...prev, photos: galleryData.images.length }))
+             setRecentActivity(prev => [
+               ...prev,
+               ...galleryData.images.slice(0, 2).map((img: RecentPhoto) => ({
+                 type: 'photo',
+                 text: img.caption || 'New photo added',
+                 date: new Date().toISOString()
+               }))
+             ])
+           }
+         }
       } catch {
         // non-blocking
       }
@@ -456,6 +476,59 @@ const DashboardPage = () => {
             </div>
           </main>
         )}
+          <section className={styles.statsSection} aria-label="Statistics">
+            <h2 className={styles.sectionTitle}>Statistics</h2>
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <BookOpenIcon size={20} className={styles.statIcon} />
+                <span className={styles.statValue}>{stats.journals}</span>
+                <span className={styles.statLabel}>Journal Entries</span>
+              </div>
+              <div className={styles.statCard}>
+                <PhotoIcon size={20} className={styles.statIcon} />
+                <span className={styles.statValue}>{stats.photos}</span>
+                <span className={styles.statLabel}>Photos</span>
+              </div>
+              <div className={styles.statCard}>
+                <FlameIcon size={20} className={styles.statIcon} />
+                <span className={styles.statValue}>{stats.streak}</span>
+                <span className={styles.statLabel}>Day Streak</span>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.quickActionsSection} aria-label="Quick actions">
+            <h2 className={styles.sectionTitle}>Quick Actions</h2>
+            <div className={styles.quickActionsGrid}>
+              <button className={styles.quickActionBtn} onClick={() => navigate('/journal')}>
+                <BookOpenIcon size={18} /> Write Journal
+              </button>
+              <button className={styles.quickActionBtn} onClick={() => navigate('/gallery')}>
+                <PhotoIcon size={18} /> Upload Photo
+              </button>
+              <button className={styles.quickActionBtn} onClick={() => navigate('/truth-dare')}>
+                <CardsIcon size={18} /> Play Truth or Dare
+              </button>
+              {!partnerName && (
+                <button className={styles.quickActionBtn} onClick={() => navigate('/link-partner')}>
+                  <HeartIcon size={18} /> Link Partner
+                </button>
+              )}
+            </div>
+          </section>
+
+          <section className={styles.activitySection} aria-label="Recent activity">
+            <h2 className={styles.sectionTitle}>Recent Activity</h2>
+            {recentActivity.length === 0 ? (
+              <p className={styles.emptyState}>No recent activity yet.</p>
+            ) : (
+              <ul className={styles.activityList}>
+                {recentActivity.slice(0, 2).map((a, i) => (
+                  <li key={i} className={styles.activityItem}>{a.text}</li>
+                ))}
+              </ul>
+            )}
+          </section>
       </div>
 
       {/* Accessible Custom Mood Modal (R-32) */}
