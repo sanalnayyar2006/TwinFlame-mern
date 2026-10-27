@@ -7,7 +7,8 @@ dist/
 .agents/
 .cursor/
 .opencode/
-
+.impeccable/
+.gemini
+.codex/
 anti-slop/
-
 AGENTS.md
