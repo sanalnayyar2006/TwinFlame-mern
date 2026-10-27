@@ -252,6 +252,82 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
             </NavLink>
           )
         })}
+
+        {/* Mobile Profile / Logout */}
+        <div className={styles.mobileProfileWrapper} ref={profileRef}>
+          <button
+            type="button"
+            className={`${styles.bottomNavItem} ${showProfile ? styles.bottomNavItemActive : ''}`}
+            onClick={() => setShowProfile(prev => !prev)}
+            aria-expanded={showProfile}
+            aria-label="Open profile menu"
+          >
+            <UserIcon size={20} />
+            <span>Profile</span>
+          </button>
+
+          {showProfile && (
+            <div className={styles.mobileProfilePopover} role="menu">
+              <div className={styles.popoverHeader}>
+                <div className={styles.popoverAvatar}>
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <div className={styles.popoverInfo}>
+                  <h4 className={styles.popoverUserName}>{userName}</h4>
+                  {user?.email && <p className={styles.popoverEmail}>{user.email}</p>}
+                </div>
+              </div>
+
+              <div className={styles.popoverDivider} />
+
+              <div className={styles.popoverCodeSection}>
+                <span className={styles.popoverLabel}>Your Couple Code</span>
+                <div className={styles.popoverCodeBox}>
+                  <code className={styles.codeText}>{user?.coupleCode || '------'}</code>
+                  <button
+                    type="button"
+                    className={styles.popoverCopyBtn}
+                    onClick={handleCopyCode}
+                    aria-label="Copy couple code"
+                  >
+                    {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.popoverStatusRow}>
+                <span className={styles.popoverLabel}>Partner Status</span>
+                {effectivePartnerName ? (
+                  <span className={styles.popoverConnected}>
+                    Connected with {effectivePartnerName}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.popoverLinkBtn}
+                    onClick={() => {
+                      setShowProfile(false)
+                      navigate('/link-partner')
+                    }}
+                  >
+                    Link Partner
+                  </button>
+                )}
+              </div>
+
+              <div className={styles.popoverDivider} />
+
+              <button
+                type="button"
+                className={styles.popoverLogoutBtn}
+                onClick={handleLogout}
+              >
+                <LogoutIcon size={16} />
+                <span>Sign out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
     </>
   )
