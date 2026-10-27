@@ -3,12 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "pnpm run dev:client & pnpm run dev:server",
+
     "dev:client": "pnpm --filter client dev",
     "dev:server": "pnpm --filter server dev",
-    "dev": "pnpm run dev:client & pnpm run dev:server",
+
+    "typecheck": "pnpm --filter client typecheck && pnpm --filter server typecheck",
+
+    "lint": "pnpm --filter client lint",
+
     "build": "pnpm --filter client build && pnpm --filter server build",
+
     "start": "pnpm --filter server start",
-    "save": "git add . && git commit -m 'checkpoint' && git push origin main"
+
+    "save": "git add . && git commit -m \"checkpoint\" && git push origin main"
   },
   "dependencies": {
     "agy": "^0.0.0"
