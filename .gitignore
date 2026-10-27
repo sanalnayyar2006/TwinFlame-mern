@@ -3,7 +3,11 @@ dist/
 .env
 *.env.local
 .DS_Store
+
 .agents/
 .cursor/
 .opencode/
+
 anti-slop/
+
+AGENTS.md
