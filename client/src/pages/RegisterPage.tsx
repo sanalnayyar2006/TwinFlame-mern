@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { FlameIcon } from '../components/Icons'
+import { GoogleSignInButton, type GoogleAuthResponse } from '../components/GoogleSignInButton'
 import styles from './RegisterPage.module.css'
 
 const RegisterPage = () => {
@@ -58,6 +59,20 @@ const RegisterPage = () => {
       setError('Unable to register. Please check your connection.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = (data: GoogleAuthResponse) => {
+    if (data.token) {
+      localStorage.setItem('token', data.token)
+    } else if (data.user?.id) {
+      localStorage.setItem('token', data.user.id)
+    }
+
+    if (data.user?.partnerId || data.user?.coupleId) {
+      navigate('/dashboard')
+    } else {
+      navigate('/link-partner')
     }
   }
 
@@ -130,6 +145,13 @@ const RegisterPage = () => {
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>
+
+            <GoogleSignInButton
+              text="signup"
+              disabled={loading}
+              onSuccess={handleGoogleSuccess}
+              onError={err => setError(err)}
+            />
 
             <p className={styles.link}>
               Already have an account?{' '}

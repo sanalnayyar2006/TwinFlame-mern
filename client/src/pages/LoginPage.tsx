@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { FlameIcon } from '../components/Icons'
+import { GoogleSignInButton, type GoogleAuthResponse } from '../components/GoogleSignInButton'
 import styles from './loginPage.module.css'
 
 const LoginPage = () => {
@@ -23,17 +24,13 @@ const LoginPage = () => {
       const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
       const url = `${API_URL}/api/auth/login`
 
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+       const res = await fetch(url, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         credentials: 'include',
+         body: JSON.stringify({ email, password })
+       })
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-        signal: controller.signal
-      })
-      clearTimeout(timeoutId)
 
       const rawText = await res.text()
       let bodyText: Record<string, unknown> | null = null
@@ -65,6 +62,20 @@ const LoginPage = () => {
       setError('Unable to connect. Please check your connection.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = (data: GoogleAuthResponse) => {
+    if (data.token) {
+      localStorage.setItem('token', data.token)
+    } else if (data.user?.id) {
+      localStorage.setItem('token', data.user.id)
+    }
+
+    if (data.user?.isNewUser && !data.user.partnerId) {
+      navigate('/link-partner')
+    } else {
+      navigate('/dashboard')
     }
   }
 
@@ -124,6 +135,13 @@ const LoginPage = () => {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+
+            <GoogleSignInButton
+              text="signin"
+              disabled={loading}
+              onSuccess={handleGoogleSuccess}
+              onError={err => setError(err)}
+            />
 
             <p className={styles.link}>
               Don't have an account?{' '}
