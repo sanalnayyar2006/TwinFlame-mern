@@ -1,4 +1,5 @@
 import {Request,Response} from 'express'
+import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/User'
@@ -175,5 +176,117 @@ export const updateMood = async (req: AuthRequest, res: Response): Promise<void>
     res.status(200).json({ message: 'Mood updated' })
   } catch (error) {
     res.status(500).json({ message: 'Server error' })
+  }
+}
+
+// google auth
+
+export const googleAuth = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { credential, idToken } = req.body
+    const tokenToVerify = credential || idToken
+
+    if (!tokenToVerify) {
+      res.status(400).json({ message: 'Google token is required' })
+      return
+    }
+
+    let email: string | undefined
+    let name: string | undefined
+    let emailVerified = false
+
+    // In non-production environments, allow simulated dev/mock tokens for automated testing
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      typeof tokenToVerify === 'string' &&
+      tokenToVerify.startsWith('dev_mock_')
+    ) {
+      const raw = tokenToVerify.replace('dev_mock_', '')
+      const [mockEmail, mockName] = raw.split(':')
+      email = mockEmail
+      name = mockName || 'Google User'
+      emailVerified = true
+    } else {
+      // Verify token with Google's official tokeninfo endpoint
+      const googleRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenToVerify)}`
+      )
+      if (!googleRes.ok) {
+        res.status(401).json({ message: 'Invalid or expired Google token' })
+        return
+      }
+
+      const payload = (await googleRes.json()) as {
+        email?: string
+        name?: string
+        email_verified?: string | boolean
+        aud?: string
+        iss?: string
+      }
+
+      // Verify Google audience if GOOGLE_CLIENT_ID is configured
+      if (
+        process.env.GOOGLE_CLIENT_ID &&
+        payload.aud &&
+        payload.aud !== process.env.GOOGLE_CLIENT_ID
+      ) {
+        res.status(401).json({ message: 'Google token client ID mismatch' })
+        return
+      }
+
+      email = payload.email
+      name = payload.name
+      emailVerified = payload.email_verified === true || payload.email_verified === 'true'
+    }
+
+    if (!email) {
+      res.status(400).json({ message: 'Google account does not provide an email address' })
+      return
+    }
+
+    if (!emailVerified) {
+      res.status(400).json({ message: 'Google email address is not verified' })
+      return
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Check if user already exists (handles returning Google user OR existing email/password user)
+    let user = await User.findOne({ email: normalizedEmail })
+    let isNewUser = false
+
+    if (!user) {
+      // First-time user: create new user record preserving schema structure
+      isNewUser = true
+      const coupleCode = generateCoupleCode()
+      const randomPassword = crypto.randomBytes(32).toString('hex')
+      const hashedPassword = await bcrypt.hash(randomPassword, 12)
+      const displayName = name && name.trim() ? name.trim() : normalizedEmail.split('@')[0]
+
+      user = await User.create({
+        name: displayName,
+        email: normalizedEmail,
+        password: hashedPassword,
+        coupleCode
+      })
+    }
+
+    // Reuse existing session/auth handling
+    const token = sendTokenResponse(user._id.toString(), res)
+
+    res.status(200).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        coupleCode: user.coupleCode,
+        coupleId: user.coupleId,
+        partnerId: user.partnerId,
+        isNewUser
+      }
+    })
+  } catch (error) {
+    console.error('Google auth error:', error)
+    res.status(500).json({ message: 'Failed to authenticate with Google' })
   }
 }
