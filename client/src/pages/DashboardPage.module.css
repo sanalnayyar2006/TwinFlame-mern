@@ -535,6 +535,123 @@
   align-self: flex-start;
 }
 
+.dashboardGrid .taskCard,
+.moodSection {
+  padding: 18px;
+  gap: 12px;
+}
+
+.dashboardGrid .taskQuestion {
+  font-size: clamp(1.2rem, 1.5vw, 1.35rem);
+  line-height: 1.3;
+}
+
+.dashboardGrid .taskBtnPrimary,
+.dashboardGrid .taskBtnSecondary,
+.linkPartnerBtn {
+  min-height: 44px;
+  padding: 9px 14px;
+  font-size: 0.875rem;
+}
+
+.dashboardGrid .taskBtnPrimary svg {
+  width: 16px;
+  height: 16px;
+}
+
+.moodGrid {
+  gap: 12px;
+  padding-top: 0;
+}
+
+.moodItem {
+  min-height: 52px;
+}
+
+.moodCircle {
+  width: 40px;
+  height: 40px;
+}
+
+.moodCircle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.moodLabel {
+  font-size: 0.7rem;
+}
+
+.gameCard {
+  padding: 12px 16px;
+}
+
+.gameCardHeader {
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.gameIconWrap {
+  width: 36px;
+  height: 36px;
+}
+
+.gameIconWrap svg,
+.quickCardIconWrap svg {
+  width: 20px;
+  height: 20px;
+}
+
+.gameCardTitle {
+  font-size: 1.05rem;
+}
+
+.gameCardDesc,
+.spaceText {
+  font-size: 0.8rem;
+}
+
+.quickLinksSection {
+  gap: 6px;
+}
+
+.quickCardsGrid {
+  gap: 8px;
+}
+
+.quickCard {
+  gap: 10px;
+  padding: 12px;
+  min-height: 44px;
+}
+
+.quickCardIconWrap {
+  width: 40px;
+  height: 40px;
+}
+
+.quickCardTag {
+  font-size: 0.65rem;
+}
+
+.quickCardTitle {
+  font-size: 0.875rem;
+}
+
+.quickCardAction {
+  font-size: 0.75rem;
+}
+
+.spaceCard {
+  padding: 12px 16px;
+  gap: 6px;
+}
+
+.playBadge {
+  padding: 4px 10px;
+  font-size: 0.7rem;
+}
+
 /* Accessible Modal */
 .modalBackdrop {
   position: fixed;
@@ -665,6 +782,36 @@
   cursor: not-allowed;
 }
 
+.modalCard {
+  padding: 20px;
+  gap: 12px;
+}
+
+.modalTitle {
+  font-size: 1.05rem;
+}
+
+.modalCloseBtn,
+.modalCancelBtn,
+.modalSaveBtn {
+  min-height: 44px;
+  font-size: 0.875rem;
+}
+
+.modalInput {
+  font-size: 0.875rem;
+}
+
+.modalCloseBtn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.colorChip {
+  width: 44px;
+  height: 44px;
+}
+
 /* Laptop / Desktop Screen Enhancements (>= 768px and >= 1024px) */
 @media (min-width: 768px) {
   .mobileHeader {
@@ -677,9 +824,9 @@
 
   .dashboardGrid {
     display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
     gap: var(--space-md);
-    align-items: start;
+    align-items: stretch;
   }
 
   .taskButtons {
@@ -707,13 +854,30 @@
   }
 
   .dashboardGrid {
-    grid-template-columns: 1.2fr 0.8fr;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
     gap: var(--space-lg);
+  }
+
+  .quickCardsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 1280px) {
-  .dashboardGrid {
-    gap: var(--space-xl);
+@media (max-width: 767px) {
+  .sectionTitle {
+    font-size: 0.95rem;
+  }
+
+  .moodGrid {
+    gap: 10px;
+  }
+
+  .quickCardIconWrap {
+    width: 38px;
+    height: 38px;
+  }
+
+  .quickCardTitle {
+    font-size: 0.875rem;
   }
 }
