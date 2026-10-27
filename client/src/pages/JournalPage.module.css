@@ -148,6 +148,8 @@
   margin: var(--space-xl) auto;
 }
 
+.entryContent img { display: none; }
+
 .emptyIconWrap {
   width: 56px;
   height: 56px;
@@ -215,6 +217,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 }
 
 .entryMeta {
@@ -286,7 +289,8 @@
   overflow: visible;
 }
 
-/* Write Form */
+.textarea img { max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; }
+.modalContent img { max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; }
 .writeForm {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-card-border);
@@ -405,3 +409,14 @@
 .modalBody { padding: 20px 24px 24px; }
 .modalMeta { font-size: 0.9rem; color: var(--color-text-muted, #6b7280); margin-bottom: 16px; font-style: italic; }
 .modalContent { white-space: pre-wrap; line-height: 1.7; font-size: 1rem; }
+
+.menuBtn { border: none; background: none; cursor: pointer; font-size: 1.4rem; color: var(--color-primary, #d4637f); padding: 0; line-height: 1; font-weight: 700; }
+.menuPopover { position: absolute; top: 40px; right: 0; background: var(--color-surface, #fff); border: 1px solid var(--color-border, #e5e7eb); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; min-width: 140px; z-index: 10; }
+.menuItem { padding: 8px 12px; border: none; background: none; text-align: left; cursor: pointer; font-size: 0.9rem; }
+.menuItem:hover { background: var(--color-surface-alt, #f3f4f6); }
+.entryImage, .modalImage { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+
+.imageBadge { position: absolute; top: 8px; right: 8px; background: var(--color-primary, #d4637f); color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+
+.entryCard { position: relative; }
+.removePhotoBtn { padding: 6px 12px; border: 1px solid var(--color-border, #e5e7eb); border-radius: 8px; background: var(--color-surface, #fff); cursor: pointer; font-size: 0.85rem; color: #ef4444; }
