@@ -9,12 +9,14 @@ import type { Page } from '../types/page'
 
 afterEach(cleanup)
 
-const page = (ids: number[], nextCursor: string | null, total = 5): Page<{ id: number }> =>
+type Item = { id: number }
+const fetcher = () => vi.fn<(before?: string) => Promise<Page<Item>>>()
+const page = (ids: number[], nextCursor: string | null, total = 5): Page<Item> =>
   ({ items: ids.map(id => ({ id })), nextCursor, total })
 
 describe('usePaginatedList', () => {
   it('loads the first page, then appends the next', async () => {
-    const fetchPage = vi.fn()
+    const fetchPage = fetcher()
       .mockResolvedValueOnce(page([5, 4, 3], 'c3'))
       .mockResolvedValueOnce(page([2, 1], null))
     const { result } = renderHook(() => usePaginatedList(fetchPage))
@@ -31,7 +33,7 @@ describe('usePaginatedList', () => {
   })
 
   it('reports a first-page error and recovers on reload', async () => {
-    const fetchPage = vi.fn()
+    const fetchPage = fetcher()
       .mockRejectedValueOnce(new Error('Server error'))
       .mockResolvedValueOnce(page([1], null, 1))
     const { result } = renderHook(() => usePaginatedList(fetchPage))
@@ -42,7 +44,7 @@ describe('usePaginatedList', () => {
   })
 
   it('keeps loaded items when the next page fails', async () => {
-    const fetchPage = vi.fn()
+    const fetchPage = fetcher()
       .mockResolvedValueOnce(page([3, 2], 'c2', 3))
       .mockRejectedValueOnce(new Error('Offline'))
     const { result } = renderHook(() => usePaginatedList(fetchPage))
@@ -54,8 +56,8 @@ describe('usePaginatedList', () => {
   })
 
   it('ignores a second loadMore while one is in flight', async () => {
-    let resolve!: (p: Page<{ id: number }>) => void
-    const fetchPage = vi.fn()
+    let resolve!: (p: Page<Item>) => void
+    const fetchPage = fetcher()
       .mockResolvedValueOnce(page([3], 'c3', 3))
       .mockImplementationOnce(() => new Promise(r => { resolve = r }))
     const { result } = renderHook(() => usePaginatedList(fetchPage))
