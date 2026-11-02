@@ -66,7 +66,9 @@ const limiter = (windowMinutes: number, limit: number, message: string) =>
     limit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    message: { message }
+    message: { message },
+    // Test suites make many auth calls from one address; tests/rateLimit.test.ts turns it back on
+    skip: () => process.env.NODE_ENV === 'test' && process.env.RATE_LIMIT !== 'on'
   })
 
 // Login, register, Google, and partner linking: slows password guessing and couple-code guessing
