@@ -78,7 +78,10 @@ export function createServer() {
 
   if (isProduction) {
     const distPath = path.resolve(__dirname, '../../client/dist')
-    app.use(express.static(distPath))
+    // Vite puts a content hash in every asset name, so browsers can keep them for a year;
+    // index.html stays uncached so a deploy is picked up on the next load
+    app.use('/assets', express.static(path.join(distPath, 'assets'), { immutable: true, maxAge: '1y', fallthrough: false }))
+    app.use(express.static(distPath, { maxAge: 0 }))
     // Everything that isn't an API route is the React app
     app.use((_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'), err => {

@@ -11,6 +11,7 @@ Object.assign(process.env, {
   GOOGLE_CLIENT_ID: 'e2e.apps.googleusercontent.com',
   JWT_SECRET: 'e2e-secret-that-is-at-least-32-characters',
   CLOUDINARY_CLOUD_NAME: 'e2e', CLOUDINARY_API_KEY: 'e2e', CLOUDINARY_API_SECRET: 'e2e',
+  DEMO_MODE: 'true',
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'warn'
 })
 

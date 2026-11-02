@@ -318,6 +318,8 @@
 }
 
 .bottomNavItem {
+  /* Profile is a <button>; without this it shows the browser's grey button fill */
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -18,8 +18,10 @@ export default defineConfig({
     ...(isCI ? {} : { channel: 'chrome' })
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], ...(isCI ? {} : { channel: 'chrome' }) } },
-    { name: 'mobile', use: { ...devices['Pixel 7'], ...(isCI ? {} : { channel: 'chrome' }) }, grep: /@mobile/ }
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], ...(isCI ? {} : { channel: 'chrome' }) }, grepInvert: /@screenshots/ },
+    { name: 'mobile', use: { ...devices['Pixel 7'], ...(isCI ? {} : { channel: 'chrome' }) }, grep: /@mobile/ },
+    // README images: pnpm --filter e2e screenshots (writes to .github/assets)
+    { name: 'screenshots', use: { ...(isCI ? {} : { channel: 'chrome' }) }, grep: /@screenshots/ }
   ],
   webServer: {
     command: 'pnpm --filter server exec tsx tests/e2eServer.ts',

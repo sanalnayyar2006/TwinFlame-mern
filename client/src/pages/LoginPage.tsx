@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { FlameIcon } from '../components/Icons'
 import { GoogleSignInButton, type GoogleAuthResponse } from '../components/GoogleSignInButton'
+import { DemoEntry } from '../components/DemoEntry'
+import { isDemoEnabled } from '../hooks/useDemoLogin'
 import styles from './loginPage.module.css'
 
 const LoginPage = () => {
@@ -146,6 +148,7 @@ const LoginPage = () => {
               <Link to="/register">Create one</Link>
             </p>
           </form>
+          {isDemoEnabled && <DemoEntry />}
         </main>
       </div>
     </div>

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx src/config/seed.ts",
-    "migrate:journal-images": "tsx src/scripts/migrateJournalImages.ts"
+    "migrate:journal-images": "tsx src/scripts/migrateJournalImages.ts",
+    "seed:demo": "tsx src/scripts/seedDemo.ts"
   },
   "keywords": [],
   "author": "",

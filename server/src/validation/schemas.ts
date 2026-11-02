@@ -40,6 +40,10 @@ export const moodSchema = z.object({
 // Inline photos are data:image URLs today (moving to Cloudinary later) or https links
 const imageUrl = z.string().max(5_000_000).regex(/^(data:image\/(png|jpe?g|gif|webp|heic);base64,|https:\/\/)/, 'Invalid image')
 
+export const demoLoginSchema = z.object({
+  as: z.enum(['ana', 'ben'], { error: 'Choose Ana or Ben' })
+})
+
 export const journalCreateSchema = z.object({
   title: z.string({ error: 'Title and content required' }).trim().min(1, 'Title and content required').max(200),
   content: z.string({ error: 'Title and content required' }).min(1, 'Title and content required').max(5_000_000),

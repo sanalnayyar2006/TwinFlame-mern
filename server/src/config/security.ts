@@ -55,7 +55,8 @@ export const securityHeaders = helmet({
       frameSrc: ['https://accounts.google.com'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
-      upgradeInsecureRequests: isProduction ? [] : null
+      // Browsers ignore (and warn about) this in report-only mode; turn it on when enforcing
+      upgradeInsecureRequests: null
     }
   }
 })
@@ -96,6 +97,11 @@ export const errorHandler: ErrorRequestHandler = (err, _req: Request, res: Respo
   }
   if (err?.type === 'entity.parse.failed') {
     res.status(400).json({ message: 'Invalid JSON in request body.' })
+    return
+  }
+  // Errors from Express and its libraries carry a 4xx status (e.g. a missing /assets file is 404)
+  if (typeof err?.status === 'number' && err.status >= 400 && err.status < 500) {
+    res.status(err.status).json({ message: err.status === 404 ? 'Not found' : 'Bad request' })
     return
   }
   logger.error({ err }, 'Unhandled error')
