@@ -9,6 +9,15 @@
   --color-accent-hover: #bf674a;
   --color-accent-muted: rgba(212, 121, 90, 0.12);
 
+  /* Button fills with white text. The brand pink and orange are 3.99:1 and 3.14:1 with white,
+     below WCAG AA (4.5:1), so filled buttons use these darker shades of the same hues. */
+  --color-primary-fill: #b04e67;        /* white 5.08:1 */
+  --color-primary-fill-hover: #9e465d;  /* white 6.02:1 */
+  --color-accent-fill: #aa6148;         /* white 4.65:1 */
+  --color-accent-fill-hover: #a15c44;   /* white 5.09:1 */
+  /* Small pink text on cards and tinted badges; the brand pink is 3.96 to 4.22:1 there */
+  --color-primary-text: #dc7e97;        /* 5.6:1 on badges, 6.0:1 on raised cards */
+
   /* Deep warm surfaces (intimate, calm, no harsh neon or generic purple) */
   --color-bg-dark: #130d12;
   --color-surface: #1b131a;
@@ -21,6 +30,10 @@
   --color-nav-border: rgba(255, 255, 255, 0.07);
   --color-input-bg: #1c141b;
   --color-input-border: rgba(255, 255, 255, 0.07);
+  /* Older styles reference these two names; without them they fell back to light-theme
+     greys (white borders, light hover behind light text) */
+  --color-border: var(--color-card-border-hover);
+  --color-surface-alt: var(--color-surface-hover);
 
   /* Typography & contrast-compliant text */
   --color-text-light: #f5f1f3;
@@ -83,6 +96,8 @@ body {
 button {
   cursor: pointer;
   border: none;
+  /* Without this, any button that doesn't set a background shows the browser's grey fill */
+  background: none;
   font-family: var(--font-display);
   color: inherit;
 }

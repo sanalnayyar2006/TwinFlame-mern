@@ -102,6 +102,7 @@ pnpm test:e2e    # builds the client, then runs Playwright against the productio
 ```
 
 - **Server tests** run the real Express app against an in-memory MongoDB. They cover authentication, partner linking (including injection attempts and two people racing for the same partner), journal and gallery access rules, photo cleanup, the Daily Connection, socket events, production CORS, and rate limits. Cloudinary is mocked, and `server/.env` is never read.
+- **Accessibility tests** run axe-core against every screen and its menus and dialogs, on desktop and a phone-sized screen, and fail on any WCAG 2.1 AA violation.
 - **End-to-end tests** open two browser contexts as two partners and check that answers, edits, and moods sync live, on a desktop and a phone-sized screen.
 
 To skip the one-time MongoDB download locally, run tests with `MONGOMS_SYSTEM_BINARY=$(which mongod)`.

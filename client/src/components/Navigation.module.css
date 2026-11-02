@@ -196,7 +196,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   display: flex;
   align-items: center;
@@ -246,7 +246,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-dim);
+  color: var(--color-text-muted);
 }
 
 .popoverCodeBox {
@@ -292,7 +292,7 @@
 }
 
 .popoverLinkBtn {
-  background: var(--color-accent);
+  background: var(--color-accent-fill);
   color: white;
   padding: 6px 12px;
   border-radius: var(--radius-xs);
@@ -318,8 +318,6 @@
 }
 
 .bottomNavItem {
-  /* Profile is a <button>; without this it shows the browser's grey button fill */
-  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;

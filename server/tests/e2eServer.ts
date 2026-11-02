@@ -12,6 +12,8 @@ Object.assign(process.env, {
   JWT_SECRET: 'e2e-secret-that-is-at-least-32-characters',
   CLOUDINARY_CLOUD_NAME: 'e2e', CLOUDINARY_API_KEY: 'e2e', CLOUDINARY_API_SECRET: 'e2e',
   DEMO_MODE: 'true',
+  // Many sign-ups from one address in a single run; the real limit is covered by server tests
+  AUTH_RATE_LIMIT: '500',
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'warn'
 })
 

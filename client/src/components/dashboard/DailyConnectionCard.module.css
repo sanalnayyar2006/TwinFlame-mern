@@ -149,15 +149,15 @@
   transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
-/* primary-hover as the resting color: white on primary is 3.99:1, on primary-hover 5.08:1 */
+/* AA-safe fill tokens from index.css */
 .btnPrimary {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill);
   color: #ffffff;
   border: none;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  filter: brightness(0.92);
+  background: var(--color-primary-fill-hover);
 }
 
 .btnSecondary {

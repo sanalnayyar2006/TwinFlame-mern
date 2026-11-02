@@ -108,7 +108,7 @@
 }
 
 .button {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   font-size: 0.95rem;
   font-weight: 600;
@@ -120,7 +120,7 @@
 }
 
 .button:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
 }
 
 .button:disabled {

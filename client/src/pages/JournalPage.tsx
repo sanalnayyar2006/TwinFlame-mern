@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
-import { sanitizeJournalHtml } from '../utils/sanitizeJournalHtml'
 import { journalService } from '../services/journal.service'
 import { usePaginatedList } from '../hooks/usePaginatedList'
+import { useJournalDraft } from '../hooks/useJournalDraft'
 import { Navigation } from '../components/Navigation'
 import { LoadMore } from '../components/LoadMore'
+import { JournalEntryCard } from './journal/JournalEntryCard'
+import { JournalReader } from './journal/JournalReader'
+import { JournalEditor } from './journal/JournalEditor'
 import type { JournalEntry } from '../types/journal'
 import {
   BookOpenIcon,
   PlusIcon,
-  ArrowLeftIcon,
-  XIcon,
-  PhotoIcon
+  ArrowLeftIcon
 } from '../components/Icons'
 import styles from './JournalPage.module.css'
 
@@ -31,34 +32,15 @@ const JournalPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
-  const draftKey = 'journalDraft_' + (localStorage.getItem('token') || 'anon')
-  const [hasDraft, setHasDraft] = useState(false)
+  const draft = useJournalDraft()
+  const hasDraft = draft.hasDraft
   const [isDraftMode, setIsDraftMode] = useState(false)
 
+  // Autosave to this device while writing
+  const saveDraft = draft.save
   useEffect(() => {
-    const draft = localStorage.getItem(draftKey)
-    if (draft) {
-      try {
-        JSON.parse(draft)
-        setHasDraft(true)
-      } catch { /* ignore */ }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (view === 'write' && (title.trim() || content.trim())) {
-      localStorage.setItem(draftKey, JSON.stringify({ title, content }))
-      setHasDraft(true)
-    }
-  }, [title, content, view])
-
-  useEffect(() => {
-    return () => {
-      if (view === 'write' && (title.trim() || content.trim())) {
-        localStorage.setItem(draftKey, JSON.stringify({ title, content }))
-      }
-    }
-  }, [view, title, content])
+    if (view === 'write') saveDraft(title, content)
+  }, [title, content, view, saveDraft])
 
   const handleCreate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -77,10 +59,7 @@ const JournalPage = () => {
          setTitle('')
          setContent('')
          if (editorRef.current) editorRef.current.innerHTML = ''
-         if (isDraftMode) {
-           localStorage.removeItem(draftKey)
-           setHasDraft(false)
-         }
+         if (isDraftMode) draft.clear()
          setIsDraftMode(false)
          setView('list')
       }
@@ -174,18 +153,6 @@ const JournalPage = () => {
     }
   }
 
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })
-    } catch {
-      return dateStr
-    }
-  }
-
   return (
     <div className={styles.pageContainer}>
       <Navigation />
@@ -223,26 +190,16 @@ const JournalPage = () => {
                   type="button"
                   className={styles.writeBtn}
                   onClick={() => {
-                    const draft = localStorage.getItem(draftKey)
-                    if (draft) {
-                      try {
-                        const { title: t, content: c } = JSON.parse(draft)
-                        if (t) setTitle(t)
-                        if (c) setContent(c)
-                        setIsDraftMode(true)
-                      } catch { /* ignore */ }
+                    const saved = draft.read()
+                    if (saved) {
+                      setTitle(saved.title)
+                      setContent(saved.content)
+                      setIsDraftMode(true)
                     }
                     setView('write')
+                    // The editor mounts on the next render; fill it then
                     setTimeout(() => {
-                      if (editorRef.current) {
-                        const draft = localStorage.getItem(draftKey)
-                        if (draft) {
-                          try {
-                            const { content: c } = JSON.parse(draft)
-                            if (c) editorRef.current.innerHTML = c
-                          } catch { /* ignore */ }
-                        }
-                      }
+                      if (editorRef.current && saved?.content) editorRef.current.innerHTML = saved.content
                     }, 0)
                   }}
                 >
@@ -303,50 +260,18 @@ const JournalPage = () => {
             ) : (
               <div className={styles.entriesGrid}>
                 {entries.map(entry => (
-                  <article
-                  key={entry._id}
-                  className={styles.entryCard}
-                  onClick={() => setViewingEntry(entry)}
-                >
-                    <div className={styles.entryHeader}>
-                      <div className={styles.entryMeta}>
-                        <span className={styles.authorBadge}>{entry.author?.name || 'Partner'}</span>
-                        <span className={styles.entryDate}>{formatDate(entry.createdAt)}</span>
-                      </div>
-                      <button
-                        type="button"
-                        className={styles.menuBtn}
-                        onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === entry._id ? null : entry._id) }}
-                        aria-label="More options"
-                      >
-                        ⋯
-                      </button>
-                      {menuOpenId === entry._id && (
-                        <div className={styles.menuPopover} onClick={e => e.stopPropagation()}>
-                          <label className={styles.menuItem} aria-disabled={photoBusyId === entry._id}>
-                            {photoBusyId === entry._id ? 'Working…' : 'Add photo'}
-                            <input type="file" accept="image/*" style={{ display: 'none' }} disabled={photoBusyId === entry._id} onChange={(e) => {
-                              const f = e.target.files?.[0]
-                              e.target.value = ''
-                              if (f) void addPhotoToEntry(entry, f)
-                            }} />
-                          </label>
-                          {entry.content?.includes('<img') && (
-                            <button className={styles.menuItem} disabled={photoBusyId === entry._id} onClick={() => void removePhotosFromEntry(entry)}>Remove photo</button>
-                          )}
-                          <button className={styles.menuItem} disabled={deletingId === entry._id} onClick={(e) => { e.stopPropagation(); handleDelete(entry._id) }}>{deletingId === entry._id ? 'Deleting…' : 'Delete'}</button>
-                        </div>
-                      )}
-                    </div>
-
-                    <h3 className={styles.entryTitle}>{entry.title}</h3>
-                    {entry.content?.includes('<img') && (
-                      <span className={styles.imageBadge} title="includes image">
-                        <PhotoIcon size={14} />
-                      </span>
-                    )}
-                    <p className={styles.entryContent} dangerouslySetInnerHTML={{ __html: sanitizeJournalHtml(entry.content) }} />
-                  </article>
+                  <JournalEntryCard
+                    key={entry._id}
+                    entry={entry}
+                    menuOpen={menuOpenId === entry._id}
+                    photoBusy={photoBusyId === entry._id}
+                    deleting={deletingId === entry._id}
+                    onOpen={() => setViewingEntry(entry)}
+                    onToggleMenu={() => setMenuOpenId(menuOpenId === entry._id ? null : entry._id)}
+                    onAddPhoto={f => void addPhotoToEntry(entry, f)}
+                    onRemovePhotos={() => void removePhotosFromEntry(entry)}
+                    onDelete={() => void handleDelete(entry._id)}
+                  />
                 ))}
               </div>
             )}
@@ -367,118 +292,53 @@ const JournalPage = () => {
         {/* Write View */}
         {view === 'write' && (
           <main className={styles.main}>
-            <form className={styles.writeForm} onSubmit={handleCreate}>
-              <div className={styles.inputGroup}>
-                <label htmlFor="journal-title" className={styles.label}>Title</label>
-                <input
-                  id="journal-title"
-                  className={styles.input}
-                  type="text"
-                  placeholder="Give this moment a title..."
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label htmlFor="journal-content" className={styles.label}>Your Thoughts</label>
-                <div
-                  ref={editorRef}
-                  id="journal-content"
-                  className={styles.textarea}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={() => {
-                    const html = editorRef.current?.innerHTML || ''
-                    setContent(html)
-                    if (html.trim() && (isDraftMode || !hasDraft)) {
-                      localStorage.setItem(draftKey, JSON.stringify({ title, content: html }))
-                      setHasDraft(true)
-                    }
-                  }}
-                  style={{ minHeight: 200, padding: 12, border: '1px solid var(--color-border, #e5e7eb)', borderRadius: 8 }}
-                />
-                <input ref={fileInputRef} type="file" accept="image/*" onClick={() => {
-                  const sel = window.getSelection()
-                  if (sel && sel.rangeCount > 0) savedRangeRef.current = sel.getRangeAt(0).cloneRange()
-                }} disabled={editorUploading} aria-label="Add a photo to this entry" onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) void insertPhotoInEditor(f)
-                }} />
-                {editorUploading && <p className={styles.label} role="status">Uploading photo…</p>}
-                {content.includes('<img') && (
-                  <button type="button" className={styles.removePhotoBtn} onClick={() => {
-                    if (editorRef.current) {
-                      editorRef.current.innerHTML = editorRef.current.innerHTML.replace(/<img[^>]*>/g, '')
-                      setContent(editorRef.current.innerHTML)
-                    }
-                    if (fileInputRef.current) fileInputRef.current.value = ''
-                  }}>Remove photo</button>
-                )}
-              </div>
-
-              <div className={styles.formActions}>
-                {isDraftMode && (
-                  <button
-                    type="button"
-                    className={styles.cancelBtn}
-                    onClick={() => {
-                      localStorage.removeItem(draftKey)
-                      setTitle('')
-                      setContent('')
-                      setHasDraft(false)
-                      setIsDraftMode(false)
-                      setView('list')
-                    }}
-                  >
-                    Delete Draft
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                onClick={() => {
-                  const html = editorRef.current?.innerHTML || ''
-                  if (html.trim() || title.trim()) {
-                    localStorage.setItem(draftKey, JSON.stringify({ title, content: html }))
-                    setHasDraft(true)
-                  }
-                  if (editorRef.current) editorRef.current.innerHTML = ''
-                  setView('list')
-                }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.submitBtn}
-                  disabled={submitting || editorUploading || !title.trim() || !content.trim()}
-                >
-                  {submitting ? 'Saving memory...' : 'Save to Journal'}
-                </button>
-              </div>
-            </form>
+            <JournalEditor
+              title={title}
+              onTitleChange={setTitle}
+              editorRef={editorRef}
+              fileInputRef={fileInputRef}
+              hasPhotos={content.includes('<img')}
+              uploading={editorUploading}
+              submitting={submitting}
+              canSubmit={!submitting && !editorUploading && !!title.trim() && !!content.trim()}
+              isDraftMode={isDraftMode}
+              onEditorBlur={() => {
+                const html = editorRef.current?.innerHTML || ''
+                setContent(html)
+                if (html.trim() && (isDraftMode || !hasDraft)) draft.save(title, html)
+              }}
+              onPhotoPickerOpen={() => {
+                // Remember the cursor so the photo lands where the user was typing
+                const sel = window.getSelection()
+                if (sel && sel.rangeCount > 0) savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+              }}
+              onPickPhoto={f => void insertPhotoInEditor(f)}
+              onRemovePhotos={() => {
+                if (editorRef.current) {
+                  editorRef.current.innerHTML = editorRef.current.innerHTML.replace(/<img[^>]*>/g, '')
+                  setContent(editorRef.current.innerHTML)
+                }
+                if (fileInputRef.current) fileInputRef.current.value = ''
+              }}
+              onDeleteDraft={() => {
+                draft.clear()
+                setTitle('')
+                setContent('')
+                setIsDraftMode(false)
+                setView('list')
+              }}
+              onCancel={() => {
+                draft.save(title, editorRef.current?.innerHTML || '')
+                if (editorRef.current) editorRef.current.innerHTML = ''
+                setView('list')
+              }}
+              onSubmit={handleCreate}
+            />
           </main>
         )}
       </div>
 
-      {/* Read Modal */}
-      {viewingEntry && (
-        <div className={styles.modalBackdrop} onClick={() => setViewingEntry(null)} role="dialog" aria-modal="true">
-          <div className={styles.modalCard} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>{viewingEntry.title}</h3>
-              <button type="button" className={styles.modalCloseBtn} onClick={() => setViewingEntry(null)} aria-label="Close"><XIcon size={16} /></button>
-            </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalMeta}>{viewingEntry.author?.name || 'Partner'} · {formatDate(viewingEntry.createdAt)}</p>
-              {viewingEntry.imageUrl && <img src={viewingEntry.imageUrl} alt="" className={styles.modalImage} />}
-              <div className={styles.modalContent} dangerouslySetInnerHTML={{ __html: sanitizeJournalHtml(viewingEntry.content) }} />
-            </div>
-          </div>
-        </div>
-      )}
+      {viewingEntry && <JournalReader entry={viewingEntry} onClose={() => setViewingEntry(null)} />}
     </div>
   )
 }

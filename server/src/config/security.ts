@@ -73,7 +73,8 @@ const limiter = (windowMinutes: number, limit: number, message: string) =>
   })
 
 // Login, register, Google, and partner linking: slows password guessing and couple-code guessing
-export const authLimiter = limiter(15, 20, 'Too many attempts. Wait 15 minutes and try again.')
+// AUTH_RATE_LIMIT raises the cap for automated end-to-end runs; production keeps the default
+export const authLimiter = limiter(15, Number(process.env.AUTH_RATE_LIMIT) || 20, 'Too many attempts. Wait 15 minutes and try again.')
 
 export const uploadLimiter = limiter(60, 30, 'Upload limit reached. Try again in an hour.')
 

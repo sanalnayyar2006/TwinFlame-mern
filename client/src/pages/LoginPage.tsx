@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { FlameIcon } from '../components/Icons'
 import { GoogleSignInButton, type GoogleAuthResponse } from '../components/GoogleSignInButton'
 import { DemoEntry } from '../components/DemoEntry'
@@ -12,6 +12,7 @@ const LoginPage = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const sessionExpired = useSearchParams()[0].get('session') === 'expired'
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -94,6 +95,9 @@ const LoginPage = () => {
 
         <main className={styles.main}>
           <h1 className={styles.heading}>Welcome back</h1>
+          {sessionExpired && !error && (
+            <p className={styles.error} role="status">Your session ended. Sign in again to continue.</p>
+          )}
 
           <form className={styles.form} onSubmit={handleLogin}>
             <div className={styles.inputGroup}>
