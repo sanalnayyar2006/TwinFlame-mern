@@ -9,6 +9,7 @@ export interface IUser extends Document{
     createdAt:Date;
     coupleId:string;
     mood?:string;
+    timezone?:string;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -20,6 +21,7 @@ const UserSchema = new Schema<IUser>(
         partnerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
         coupleId: { type: String, default: null },
         mood: { type: String, default: null },
+        timezone: { type: String, default: null },
     },
     {timestamps:true}
 )

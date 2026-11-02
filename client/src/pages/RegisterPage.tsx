@@ -47,12 +47,12 @@ const RegisterPage = () => {
         return
       }
 
-      if (data.token) {
-        localStorage.setItem('token', data.token as string)
-      } else {
-        const userObj = data.user as Record<string, unknown> | undefined
-        localStorage.setItem('token', (userObj?.id as string) ?? '')
+      // A user ID is not a credential, so never store one in place of the token
+      if (typeof data.token !== 'string') {
+        setError('Account created, but sign-in did not complete. Please log in.')
+        return
       }
+      localStorage.setItem('token', data.token)
       navigate('/link-partner')
     } catch (err) {
       console.error(err)
@@ -63,11 +63,11 @@ const RegisterPage = () => {
   }
 
   const handleGoogleSuccess = (data: GoogleAuthResponse) => {
-    if (data.token) {
-      localStorage.setItem('token', data.token)
-    } else if (data.user?.id) {
-      localStorage.setItem('token', data.user.id)
+    if (!data.token) {
+      setError('Google sign-in did not complete. Please try again.')
+      return
     }
+    localStorage.setItem('token', data.token)
 
     if (data.user?.partnerId || data.user?.coupleId) {
       navigate('/dashboard')

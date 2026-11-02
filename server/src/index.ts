@@ -11,58 +11,37 @@ import authRoutes from './routes/auth'
 import journalRoutes from './routes/journal'
 import truthDareRoutes from './routes/TruthDare'
 import galleryRoutes from './routes/gallery'
+import dailyConnectionRoutes from './routes/dailyConnection'
 import User from './models/User'
 import './config/cloudinary'
+import { corsOptions, errorHandler, isAllowedOrigin, securityHeaders } from './config/security'
 
 connectDB()
 
 const app = express()
 const PORT = Number(process.env.PORT) || 8000
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
+// Render sits behind one proxy; needed for correct client IPs in rate limiting
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
 
-// CORS: allow configured client URL; in development allow LAN origins
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow same-origin requests (no origin header)
-    if (!origin) return callback(null, true)
-
-    // Allow configured CLIENT_URL
-    if (origin === CLIENT_URL) return callback(null, true)
-
-    // In production, allow the origin if it matches the current host
-    // or if it's a sub-path of the configured CLIENT_URL
-    if (process.env.NODE_ENV !== 'production' || origin.includes('onrender.com')) {
-      return callback(null, true)
-    }
-
-    return callback(new Error('Not allowed by CORS'))
-  },
-  credentials: true
-}))
+app.use(securityHeaders)
+app.use(cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))
 app.use(cookieParser())
 app.use('/api/auth', authRoutes)
 app.use('/api/journal', journalRoutes)
 app.use('/api/truth-dare', truthDareRoutes)
 app.use('/api/gallery', galleryRoutes)
+app.use('/api/daily-connection', dailyConnectionRoutes)
 app.get('/health', (req, res) => {
   res.json({ status: 'TwinFlame API is running 🔥' })
 })
 
 const server = createServer(app)
 const io = new IOServer(server, {
-  cors: {
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true)
-      if (origin === CLIENT_URL) return callback(null, true)
-      if (process.env.NODE_ENV !== 'production' || origin.includes('onrender.com')) {
-        return callback(null, true)
-      }
-      return callback(new Error('Not allowed by CORS'))
-    },
-    credentials: true
-  }
+  // Same origin rules as the REST API; the browser's Origin is checked before the handshake
+  allowRequest: (req, callback) => callback(null, isAllowedOrigin(req.headers.origin, req.headers.host)),
+  cors: { origin: true, credentials: true }
 })
 
 // Authenticate socket connections and place each user in their couple room
@@ -132,6 +111,8 @@ if (isProduction) {
 } else {
   console.log('🛠️  Running in development mode.')
 }
+
+app.use(errorHandler)
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`)

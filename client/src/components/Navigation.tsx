@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useSignOut } from '../hooks/useSignOut'
+import { SignOutControl } from './SignOutControl'
 import {
   FlameIcon,
   HomeIcon,
@@ -8,7 +10,6 @@ import {
   PhotoIcon,
   CardsIcon,
   UserIcon,
-  LogoutIcon,
   CopyIcon,
   CheckIcon
 } from './Icons'
@@ -32,7 +33,10 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
   const [user, setUser] = useState<UserData | null>(propUser || null)
   const [showProfile, setShowProfile] = useState(false)
   const [copied, setCopied] = useState(false)
-  const profileRef = useRef<HTMLDivElement>(null)
+  // One ref per menu: desktop and mobile both render, so a shared ref only tracked the mobile one
+  const desktopProfileRef = useRef<HTMLDivElement>(null)
+  const mobileProfileRef = useRef<HTMLDivElement>(null)
+  const { signOut, signingOut } = useSignOut()
 
   // Sync propUser if it changes
   useEffect(() => {
@@ -61,9 +65,9 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
   // Click outside to close profile dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setShowProfile(false)
-      }
+      const target = e.target as Node
+      const inside = [desktopProfileRef, mobileProfileRef].some(ref => ref.current?.contains(target))
+      if (!inside) setShowProfile(false)
     }
     if (showProfile) {
       document.addEventListener('mousedown', handleClickOutside)
@@ -82,11 +86,6 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login')
-  }
 
   const handleCopyCode = () => {
     if (user?.coupleCode) {
@@ -150,7 +149,7 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
             )}
 
             {/* Profile Dropdown Trigger */}
-            <div className={styles.profileWrapper} ref={profileRef}>
+            <div className={styles.profileWrapper} ref={desktopProfileRef}>
               <button
                 type="button"
                 className={`${styles.profileBtn} ${showProfile ? styles.profileBtnActive : ''}`}
@@ -218,14 +217,7 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
 
                   <div className={styles.popoverDivider} />
 
-                  <button
-                    type="button"
-                    className={styles.popoverLogoutBtn}
-                    onClick={handleLogout}
-                  >
-                    <LogoutIcon size={16} />
-                    <span>Sign out</span>
-                  </button>
+                  <SignOutControl onConfirm={signOut} busy={signingOut} />
                 </div>
               )}
             </div>
@@ -254,7 +246,7 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
         })}
 
         {/* Mobile Profile / Logout */}
-        <div className={styles.mobileProfileWrapper} ref={profileRef}>
+        <div className={styles.mobileProfileWrapper} ref={mobileProfileRef}>
           <button
             type="button"
             className={`${styles.bottomNavItem} ${showProfile ? styles.bottomNavItemActive : ''}`}
@@ -317,14 +309,7 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
 
               <div className={styles.popoverDivider} />
 
-              <button
-                type="button"
-                className={styles.popoverLogoutBtn}
-                onClick={handleLogout}
-              >
-                <LogoutIcon size={16} />
-                <span>Sign out</span>
-              </button>
+              <SignOutControl onConfirm={signOut} busy={signingOut} />
             </div>
           )}
         </div>

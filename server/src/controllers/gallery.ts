@@ -3,6 +3,7 @@ import streamifier from 'streamifier'
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth'
 import Gallery from '../models/Gallery'
+import { parseBody, captionSchema } from '../validation/schemas'
 
 const streamUpload = (buffer: Buffer): Promise<any> => {
   return new Promise((resolve, reject) => {
@@ -27,6 +28,9 @@ export const uploadPhoto = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'No couple linked' })
     }
 
+    const body = parseBody(captionSchema, req.body, res)
+    if (!body) return
+
     const result = await streamUpload(req.file.buffer)
 
     const photo = await Gallery.create({
@@ -34,7 +38,7 @@ export const uploadPhoto = async (req: AuthRequest, res: Response) => {
       coupleId: req.user.coupleId,
       imageUrl: result.secure_url,
       publicId: result.public_id,
-      caption: req.body.caption || ''
+      caption: body.caption ?? ''
     })
 
     return res.status(201).json(photo)
@@ -72,7 +76,9 @@ export const updatePhoto = async (req: AuthRequest, res: Response): Promise<void
       res.status(403).json({ message: 'Not authorized' })
       return
     }
-    if (req.body.caption !== undefined) entry.caption = req.body.caption
+    const body = parseBody(captionSchema, req.body, res)
+    if (!body) return
+    if (body.caption !== undefined) entry.caption = body.caption
     await entry.save()
     const populated = await entry.populate('author', 'name')
     res.status(200).json(populated)

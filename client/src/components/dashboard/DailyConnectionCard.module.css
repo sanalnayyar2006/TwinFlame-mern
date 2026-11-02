@@ -1,0 +1,309 @@
+/* Matches the existing dashboard task card. Contrast pairs checked against WCAG AA:
+   text-muted on card 6.85:1, white on primary-hover 5.08:1, error on card 8.87:1 */
+
+.card {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .card {
+    padding: var(--space-lg);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/* Icon stays brand pink (4.22:1 passes the 3:1 icon minimum); the small text does not, so it uses text-light */
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary);
+}
+
+.label {
+  color: var(--color-text-light);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.doneBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4ade80;
+  background: #172b1d;
+  border: 1px solid #23432d;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.question {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.35rem;
+  line-height: 1.35;
+  color: var(--color-text-light);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .question {
+    font-size: 1.55rem;
+  }
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.fieldLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* text-dim border gives the field edge more than 3:1 against its background */
+.textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text-light);
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-text-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.textarea:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.count {
+  align-self: flex-end;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.countOver {
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .actions {
+    flex-direction: row;
+  }
+
+  .actions .btnPrimary {
+    flex: 1;
+  }
+}
+
+.btnPrimary,
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+/* primary-hover as the resting color: white on primary is 3.99:1, on primary-hover 5.08:1 */
+.btnPrimary {
+  background: var(--color-primary-hover);
+  color: #ffffff;
+  border: none;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.btnSecondary {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border-hover);
+  color: var(--color-text-light);
+  font-weight: 500;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.btnPrimary:disabled,
+.btnSecondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.linkBtn {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 var(--space-xs);
+  margin-left: calc(var(--space-xs) * -1);
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Partner's words sit on their own surface so it's clear whose answer is whose */
+.partnerAnswer {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border-hover);
+  border-radius: var(--radius-md);
+  padding: 12px var(--space-md);
+}
+
+.answerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.answerWho {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+}
+
+.answerMeta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-bg-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.note {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--color-text-light);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.partnerZone {
+  border-top: 1px solid var(--color-card-border);
+  padding-top: var(--space-md);
+}
+
+.muted {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.inlineLink {
+  color: var(--color-text-light);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.clockNote {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.errorText {
+  font-size: 0.9rem;
+  color: #fca5a5;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skeleton {
+  background: var(--color-white-10);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeletonLabel { width: 120px; height: 14px; }
+.skeletonLine { width: 100%; height: 26px; }
+.skeletonLineShort { width: 70%; height: 26px; }
+.skeletonButton { width: 100%; height: 44px; }
+
+@keyframes pulse {
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .btnPrimary,
+  .btnSecondary { transition: none; }
+}

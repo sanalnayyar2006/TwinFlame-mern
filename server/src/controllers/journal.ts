@@ -1,6 +1,8 @@
 import { Response } from 'express'
 import Journal from '../models/Journal'
 import { AuthRequest } from '../middleware/auth'
+import { parseBody, journalCreateSchema, journalUpdateSchema } from '../validation/schemas'
+import { sanitizeJournalHtml } from '../utils/sanitizeJournalHtml'
 
 // GET all journal entries for the couple
 export const getEntries = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -24,9 +26,11 @@ export const getEntries = async (req: AuthRequest, res: Response): Promise<void>
 // POST create new journal entry
 export const createEntry = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, content, imageUrl } = req.body
-
-    if (!title || !content) {
+    const body = parseBody(journalCreateSchema, req.body, res)
+    if (!body) return
+    const { title, imageUrl } = body
+    const content = sanitizeJournalHtml(body.content)
+    if (!content.trim()) {
       res.status(400).json({ message: 'Title and content required' })
       return
     }
@@ -56,7 +60,10 @@ export const createEntry = async (req: AuthRequest, res: Response): Promise<void
 // PATCH update entry (add/remove photo)
 export const updateEntry = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { imageUrl, content } = req.body
+    const body = parseBody(journalUpdateSchema, req.body, res)
+    if (!body) return
+    const { imageUrl } = body
+    const content = body.content === undefined ? undefined : sanitizeJournalHtml(body.content)
     const entry = await Journal.findById(req.params.id)
     if (!entry) {
       res.status(404).json({ message: 'Entry not found' })

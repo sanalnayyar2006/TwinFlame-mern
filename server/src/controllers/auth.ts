@@ -4,11 +4,18 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/User'
 import { AuthRequest } from '../middleware/auth'
-//helper-to generate 6 unique digit code
+import { parseBody, registerSchema, loginSchema, googleAuthSchema, linkPartnerSchema, moodSchema } from '../validation/schemas'
+// 6-character couple code from a CSPRNG; no 0/O/1/I so codes are easy to read out loud
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+const generateCoupleCode = (): string =>
+    Array.from(crypto.randomBytes(6), b => CODE_CHARS[b % CODE_CHARS.length]).join('')
 
-const generateCoupleCode = ():string =>{
-    return Math.random().toString(36).substring(2,8).toUpperCase()
-}
+// Browsers only clear a cookie when the clear call uses the same attributes it was set with
+const authCookieOptions = () => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+} as const)
 
 // helper to create and send jwt token
 const sendTokenResponse = (userId: string, res: Response): string => {
@@ -18,13 +25,7 @@ const sendTokenResponse = (userId: string, res: Response): string => {
         { expiresIn: '7d' }
     )
 
-    const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    } as const
-
-    res.cookie('token', token, cookieOptions)
+    res.cookie('token', token, authCookieOptions())
     return token
 }
 
@@ -32,7 +33,9 @@ const sendTokenResponse = (userId: string, res: Response): string => {
 
 export const register = async (req:Request,res: Response):Promise<void> =>{
     try{
-        const {name,email,password}= req.body 
+        const body = parseBody(registerSchema, req.body, res)
+        if (!body) return
+        const { name, email, password } = body
         
         //to check if user exist
         const existingUser = await User.findOne({email})
@@ -74,7 +77,9 @@ export const register = async (req:Request,res: Response):Promise<void> =>{
 
 export const login = async (req:Request,res:Response):Promise<void>=>{
     try{
-        const {email,password}=req.body
+        const body = parseBody(loginSchema, req.body, res)
+        if (!body) return
+        const { email, password } = body
 
         //find user
 
@@ -110,7 +115,7 @@ export const login = async (req:Request,res:Response):Promise<void>=>{
 //logout
 
 export const logout = async(req:Request,res:Response):Promise<void>=>{
-    res.cookie('token','',{maxAge:0})
+    res.clearCookie('token', authCookieOptions())
     res.status(200).json({message:"Logged Out"})
 }
 
@@ -135,23 +140,45 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 
 export const linkPartner = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { partnerCode } = req.body
+    const body = parseBody(linkPartnerSchema, req.body, res)
+    if (!body) return
+    const me = req.user!
 
-    // Find partner by their coupleCode
-    const partner = await User.findOne({ coupleCode: partnerCode })
+    if (me.partnerId) {
+      res.status(409).json({ message: 'You are already linked with a partner.' })
+      return
+    }
+
+    const partner = await User.findOne({ coupleCode: body.partnerCode })
     if (!partner) {
       res.status(404).json({ message: 'Invalid code. Partner not found.' })
       return
     }
+    if (partner._id.equals(me._id)) {
+      res.status(400).json({ message: "That's your own code. Ask your partner for theirs." })
+      return
+    }
 
-        const coupleId = `${req.userId}_${partner._id}`
+    const coupleId = `${me._id}_${partner._id}`
 
-    // Update both users
-    await User.findByIdAndUpdate(req.userId, { partnerId: partner._id , coupleId})
-    await User.findByIdAndUpdate(partner._id, { partnerId: req.userId, coupleId})
+    // Each update only applies while that user is still unlinked, so an existing couple can never be overwritten
+    const claimed = await User.updateOne({ _id: partner._id, partnerId: null }, { partnerId: me._id, coupleId })
+    if (claimed.modifiedCount === 0) {
+      res.status(409).json({ message: 'This person is already linked with someone else.' })
+      return
+    }
+
+    const linked = await User.updateOne({ _id: me._id, partnerId: null }, { partnerId: partner._id, coupleId })
+    if (linked.modifiedCount === 0) {
+      // Lost a race with another link request for this account: release the partner again
+      await User.updateOne({ _id: partner._id, partnerId: me._id }, { partnerId: null, coupleId: null })
+      res.status(409).json({ message: 'You are already linked with a partner.' })
+      return
+    }
 
     res.status(200).json({ message: 'Partner linked successfully' })
   } catch (error) {
+    console.error('linkPartner error:', error)
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -160,7 +187,9 @@ export const linkPartner = async (req: AuthRequest, res: Response): Promise<void
 
 export const updateMood = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { mood } = req.body
+    const body = parseBody(moodSchema, req.body, res)
+    if (!body) return
+    const { mood } = body
 
     await User.findByIdAndUpdate(req.userId, { mood })
 
@@ -183,22 +212,18 @@ export const updateMood = async (req: AuthRequest, res: Response): Promise<void>
 
 export const googleAuth = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { credential, idToken } = req.body
-    const tokenToVerify = credential || idToken
-
-    if (!tokenToVerify) {
-      res.status(400).json({ message: 'Google token is required' })
-      return
-    }
+    const body = parseBody(googleAuthSchema, req.body, res)
+    if (!body) return
+    const tokenToVerify = (body.credential || body.idToken) as string
 
     let email: string | undefined
     let name: string | undefined
     let emailVerified = false
 
-    // In non-production environments, allow simulated dev/mock tokens for automated testing
+    // Mock tokens sign in as any email, so they need an explicit local opt-in and never work in production
     if (
       process.env.NODE_ENV !== 'production' &&
-      typeof tokenToVerify === 'string' &&
+      process.env.ALLOW_MOCK_GOOGLE === 'true' &&
       tokenToVerify.startsWith('dev_mock_')
     ) {
       const raw = tokenToVerify.replace('dev_mock_', '')
@@ -224,13 +249,11 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
         iss?: string
       }
 
-      // Verify Google audience if GOOGLE_CLIENT_ID is configured
-      if (
-        process.env.GOOGLE_CLIENT_ID &&
-        payload.aud &&
-        payload.aud !== process.env.GOOGLE_CLIENT_ID
-      ) {
-        res.status(401).json({ message: 'Google token client ID mismatch' })
+      // Token must be issued by Google for this app. GOOGLE_CLIENT_ID is required in production (config/env.ts)
+      const validIssuer = payload.iss === 'accounts.google.com' || payload.iss === 'https://accounts.google.com'
+      const validAudience = !process.env.GOOGLE_CLIENT_ID || payload.aud === process.env.GOOGLE_CLIENT_ID
+      if (!validIssuer || !validAudience) {
+        res.status(401).json({ message: 'Invalid or expired Google token' })
         return
       }
 

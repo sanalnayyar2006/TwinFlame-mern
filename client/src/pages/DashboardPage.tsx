@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useSocket } from '../hooks/useSocket'
+import { useDailyConnection } from '../hooks/useDailyConnection'
+import { DailyConnectionCard } from '../components/dashboard/DailyConnectionCard'
 import { Navigation } from '../components/Navigation'
 import {
   FlameIcon,
@@ -9,7 +11,6 @@ import {
   BookOpenIcon,
   PhotoIcon,
   CardsIcon,
-  CheckIcon,
   PlusIcon,
   XIcon
 } from '../components/Icons'
@@ -50,15 +51,12 @@ const MOODS = [
   { label: 'Tired', color: '#a78bfa' },
 ]
 
-const DAILY_TASK = "What is one thing you appreciate about your partner today?"
-
 const DashboardPage = () => {
   const [user, setUser] = useState<User | null>(null)
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
   const [customMoodText, setCustomMoodText] = useState('')
   const [customMoodColor, setCustomMoodColor] = useState('#d4637f')
   const [showMoodModal, setShowMoodModal] = useState(false)
-  const [taskStatus, setTaskStatus] = useState<'idle' | 'done' | 'skipped'>('idle')
   const [recentJournal, setRecentJournal] = useState<RecentJournal | null>(null)
   const [recentPhoto, setRecentPhoto] = useState<RecentPhoto | null>(null)
   const [stats, setStats] = useState({ journals: 0, photos: 0, streak: 0 })
@@ -69,19 +67,24 @@ const DashboardPage = () => {
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
 
+  const dailyConnection = useDailyConnection(user?._id ?? null)
+
   // Real-time sync via socket
-  useSocket(token, (data) => {
-    if (!user) return
-    if (data.userId === user._id) return
-    setUser(prev => {
-      if (!prev) return null
-      return {
-        ...prev,
-        partnerId: prev.partnerId
-          ? { ...prev.partnerId, mood: data.mood ?? null }
-          : null
-      }
-    })
+  useSocket(token, {
+    onMoodUpdate: (data) => {
+      if (!user) return
+      if (data.userId === user._id) return
+      setUser(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          partnerId: prev.partnerId
+            ? { ...prev.partnerId, mood: data.mood ?? null }
+            : null
+        }
+      })
+    },
+    onDailyConnectionUpdate: dailyConnection.handleRealtimeUpdate
   })
 
   // Keyboard escape listener for custom mood modal (R-32)
@@ -227,49 +230,17 @@ const DashboardPage = () => {
           <main className={styles.dashboardGrid}>
             {/* Left Column (Primary Activities) */}
             <div className={styles.primaryColumn}>
-              {/* Daily Task Card */}
-              <section className={styles.taskCard} aria-label="Daily appreciation task">
-                <div className={styles.taskHeader}>
-                  <div className={styles.taskLabelRow}>
-                    <HeartIcon size={16} className={styles.taskIcon} />
-                    <span className={styles.taskLabel}>Daily Connection</span>
-                  </div>
-                  {taskStatus === 'done' && (
-                    <span className={styles.taskDoneBadge}>Completed today</span>
-                  )}
-                  {taskStatus === 'skipped' && (
-                    <span className={styles.taskSkippedBadge}>Skipped for now</span>
-                  )}
-                </div>
-
-                <p className={styles.taskQuestion}>{DAILY_TASK}</p>
-
-                <div className={styles.taskButtons}>
-                  <button
-                    className={styles.taskBtnPrimary}
-                    onClick={() => setTaskStatus('done')}
-                    disabled={taskStatus === 'done'}
-                  >
-                    {taskStatus === 'done' ? (
-                      <>
-                        <CheckIcon size={18} />
-                        <span>Done for today</span>
-                      </>
-                    ) : (
-                      'I shared this with my partner'
-                    )}
-                  </button>
-
-                  {taskStatus !== 'done' && taskStatus !== 'skipped' && (
-                    <button
-                      className={styles.taskBtnSecondary}
-                      onClick={() => setTaskStatus('skipped')}
-                    >
-                      Skip today
-                    </button>
-                  )}
-                </div>
-              </section>
+              <DailyConnectionCard
+                data={dailyConnection.data}
+                loading={dailyConnection.loading}
+                error={dailyConnection.error}
+                onRetry={dailyConnection.reload}
+                saving={dailyConnection.saving}
+                saveError={dailyConnection.saveError}
+                onComplete={dailyConnection.complete}
+                onUpdateNote={dailyConnection.updateNote}
+                partnerName={partnerName}
+              />
 
               {/* Mood Section */}
               <section className={styles.moodSection} aria-label="Mood tracker">

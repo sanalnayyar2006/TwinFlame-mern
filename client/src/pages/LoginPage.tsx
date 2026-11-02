@@ -48,14 +48,12 @@ const LoginPage = () => {
         return
       }
 
-      if (bodyText && typeof bodyText['token'] === 'string') {
-        localStorage.setItem('token', bodyText['token'] as string)
-      } else {
-        const userId = bodyText && typeof bodyText['user'] === 'object' && bodyText['user']
-          ? (bodyText['user'] as Record<string, unknown>)['id']
-          : undefined
-        localStorage.setItem('token', userId ? String(userId) : '')
+      // A user ID is not a credential, so never store one in place of the token
+      if (!bodyText || typeof bodyText['token'] !== 'string') {
+        setError('Sign-in did not complete. Please try again.')
+        return
       }
+      localStorage.setItem('token', bodyText['token'])
       navigate('/dashboard')
     } catch (err) {
       console.error(err)
@@ -66,11 +64,11 @@ const LoginPage = () => {
   }
 
   const handleGoogleSuccess = (data: GoogleAuthResponse) => {
-    if (data.token) {
-      localStorage.setItem('token', data.token)
-    } else if (data.user?.id) {
-      localStorage.setItem('token', data.user.id)
+    if (!data.token) {
+      setError('Google sign-in did not complete. Please try again.')
+      return
     }
+    localStorage.setItem('token', data.token)
 
     if (data.user?.isNewUser && !data.user.partnerId) {
       navigate('/link-partner')

@@ -104,6 +104,10 @@ export default function GalleryPage() {
   }
   const handleUpload = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
+    if (!file) {
+      setError('Choose a photo to upload first.')
+      return
+    }
     try {
       setUploading(true)
       setError(null)

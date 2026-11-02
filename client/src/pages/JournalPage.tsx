@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../lib/api'
+import { sanitizeJournalHtml } from '../utils/sanitizeJournalHtml'
 import { Navigation } from '../components/Navigation'
 import {
   BookOpenIcon,
   PlusIcon,
-  TrashIcon,
   ArrowLeftIcon,
   XIcon,
   PhotoIcon
@@ -302,7 +302,7 @@ const JournalPage = () => {
                               setMenuOpenId(null)
                             }}>Remove photo</button>
                           )}
-                          <button className={styles.menuItem} onClick={(e) => { e.stopPropagation(); handleDelete(entry._id) }}>Delete</button>
+                          <button className={styles.menuItem} disabled={deletingId === entry._id} onClick={(e) => { e.stopPropagation(); handleDelete(entry._id) }}>{deletingId === entry._id ? 'Deleting…' : 'Delete'}</button>
                         </div>
                       )}
                     </div>
@@ -313,7 +313,7 @@ const JournalPage = () => {
                         <PhotoIcon size={14} />
                       </span>
                     )}
-                    <p className={styles.entryContent} dangerouslySetInnerHTML={{ __html: entry.content }} />
+                    <p className={styles.entryContent} dangerouslySetInnerHTML={{ __html: sanitizeJournalHtml(entry.content) }} />
                   </article>
                 ))}
               </div>
@@ -458,7 +458,7 @@ const JournalPage = () => {
             <div className={styles.modalBody}>
               <p className={styles.modalMeta}>{viewingEntry.author?.name || 'Partner'} · {formatDate(viewingEntry.createdAt)}</p>
               {viewingEntry.imageUrl && <img src={viewingEntry.imageUrl} alt="" className={styles.modalImage} />}
-              <div className={styles.modalContent} dangerouslySetInnerHTML={{ __html: viewingEntry.content }} />
+              <div className={styles.modalContent} dangerouslySetInnerHTML={{ __html: sanitizeJournalHtml(viewingEntry.content) }} />
             </div>
           </div>
         </div>

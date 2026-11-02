@@ -1,14 +1,15 @@
 import { Router } from 'express'
 import authMiddleware from '../middleware/auth'
+import { authLimiter } from '../config/security'
 import { register, login, logout, getMe, linkPartner, updateMood, googleAuth } from '../controllers/auth'
 
 const router = Router()
 router.get('/me', authMiddleware, getMe)
-router.post('/register', register)
-router.post('/link-partner', authMiddleware, linkPartner)
-router.post('/login', login)
+router.post('/register', authLimiter, register)
+router.post('/link-partner', authLimiter, authMiddleware, linkPartner)
+router.post('/login', authLimiter, login)
 router.post('/logout', logout)
 router.patch('/mood', authMiddleware, updateMood)
-router.post('/google', googleAuth)
+router.post('/google', authLimiter, googleAuth)
 
 export default router
