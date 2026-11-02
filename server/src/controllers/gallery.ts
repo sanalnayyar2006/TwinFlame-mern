@@ -61,6 +61,25 @@ export const getPhotos = async (req: AuthRequest, res: Response): Promise<void> 
   }
 }
 
+export const updatePhoto = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const entry = await Gallery.findById(req.params.id)
+    if (!entry) {
+      res.status(404).json({ message: 'Photo not found' })
+      return
+    }
+    if (!req.user || entry.author.toString() !== req.user._id.toString()) {
+      res.status(403).json({ message: 'Not authorized' })
+      return
+    }
+    if (req.body.caption !== undefined) entry.caption = req.body.caption
+    await entry.save()
+    const populated = await entry.populate('author', 'name')
+    res.status(200).json(populated)
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' })
+  }
+}
 export const deleteImage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const entry = await Gallery.findById(req.params.id)

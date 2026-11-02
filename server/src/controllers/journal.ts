@@ -24,7 +24,7 @@ export const getEntries = async (req: AuthRequest, res: Response): Promise<void>
 // POST create new journal entry
 export const createEntry = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, content } = req.body
+    const { title, content, imageUrl } = req.body
 
     if (!title || !content) {
       res.status(400).json({ message: 'Title and content required' })
@@ -40,6 +40,7 @@ export const createEntry = async (req: AuthRequest, res: Response): Promise<void
     const entry = await Journal.create({
       title,
       content,
+      imageUrl,
       author: user._id,
       coupleId: user.coupleId
     })
@@ -47,6 +48,30 @@ export const createEntry = async (req: AuthRequest, res: Response): Promise<void
     const populated = await entry.populate('author', 'name')
 
     res.status(201).json({ entry: populated })
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+// PATCH update entry (add/remove photo)
+export const updateEntry = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { imageUrl, content } = req.body
+    const entry = await Journal.findById(req.params.id)
+    if (!entry) {
+      res.status(404).json({ message: 'Entry not found' })
+      return
+    }
+    const user = req.user
+    if (!user || entry.author.toString() !== user._id.toString()) {
+      res.status(403).json({ message: 'Not authorized' })
+      return
+    }
+    if (imageUrl !== undefined) entry.imageUrl = imageUrl
+    if (content !== undefined) entry.content = content
+    await entry.save()
+    const populated = await entry.populate('author', 'name')
+    res.status(200).json({ entry: populated })
   } catch (error) {
     res.status(500).json({ message: 'Server error' })
   }

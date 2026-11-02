@@ -69,9 +69,41 @@ export default function GalleryPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this photo?')) return
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      setImages(prev => prev.filter(i => i._id !== id))
+      setSelectedImage(null)
+    } else {
+      const txt = await res.text()
+      console.error('Delete failed:', res.status, txt)
+      alert('Delete failed: ' + txt)
+    }
+  }
+
+  const handleEditCaption = async (id: string, caption: string) => {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery/${id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caption })
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      const newCaption = updated?.caption ?? caption
+      setImages(prev => prev.map(i => i._id === id ? { ...i, caption: newCaption } : i))
+      setSelectedImage(prev => prev && prev._id === id ? { ...prev, caption: newCaption } : prev)
+    } else {
+      console.error('Edit caption failed:', res.status, await res.text())
+    }
+  }
   const handleUpload = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!file) return
     try {
       setUploading(true)
       setError(null)
@@ -298,6 +330,16 @@ export default function GalleryPage() {
               {selectedImage.caption && (
                 <p className={styles.lightboxCaption}>{selectedImage.caption}</p>
               )}
+              {selectedImage.author?.name && (
+                <p className={styles.lightboxAuthor}>Uploaded by {selectedImage.author.name}</p>
+              )}
+              <div className={styles.lightboxActions}>
+                <button type="button" onClick={() => {
+                  const c = prompt('Edit caption', selectedImage.caption || '')
+                  if (c !== null) handleEditCaption(selectedImage._id, c)
+                }}>Edit caption</button>
+                <button type="button" onClick={() => handleDelete(selectedImage._id)}>Delete</button>
+              </div>
             </div>
           </div>
         )}

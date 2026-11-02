@@ -458,3 +458,6 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+.lightboxAuthor { font-size: 0.85rem; color: var(--color-text-muted, #6b7280); margin-top: 4px; }
+.lightboxActions { display: flex; gap: 8px; margin-top: 12px; }
+.lightboxActions button { padding: 6px 12px; border: 1px solid var(--color-border, #e5e7eb); border-radius: 8px; background: var(--color-surface, #fff); cursor: pointer; }

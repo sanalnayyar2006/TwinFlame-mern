@@ -6,6 +6,10 @@ export default defineConfig({
   server: {
     host: true,    // exposes to local network
     port: 5173,
+    headers: {
+      // Allow Google Identity Services postMessage to work during dev.
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
+    },
     proxy: {
       // Proxy API calls to the backend during development so mobile clients
       // only need to reach the Vite dev server. This avoids having the

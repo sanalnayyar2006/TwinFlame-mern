@@ -5,6 +5,7 @@ export interface IJournal extends Document {
   content: string
   author: mongoose.Types.ObjectId
   coupleId: string
+  imageUrl?: string
   createdAt: Date
 }
 
@@ -14,6 +15,7 @@ const JournalSchema = new Schema<IJournal>(
     content: { type: String, required: true },
     author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     coupleId: { type: String, required: true },
+  imageUrl: { type: String }
   },
   { timestamps: true }
 )
