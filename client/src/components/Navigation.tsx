@@ -30,7 +30,9 @@ interface NavigationProps {
 
 export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartnerName, user: propUser }) => {
   const navigate = useNavigate()
-  const [user, setUser] = useState<UserData | null>(propUser || null)
+  // Pages that already load the user (Dashboard) pass it in; other pages let Navigation fetch it
+  const [fetchedUser, setFetchedUser] = useState<UserData | null>(null)
+  const user = propUser ?? fetchedUser
   const [showProfile, setShowProfile] = useState(false)
   const [copied, setCopied] = useState(false)
   // One ref per menu: desktop and mobile both render, so a shared ref only tracked the mobile one
@@ -38,29 +40,14 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
   const mobileProfileRef = useRef<HTMLDivElement>(null)
   const { signOut, signingOut } = useSignOut()
 
-  // Sync propUser if it changes
   useEffect(() => {
-    if (propUser) {
-      setUser(propUser)
-    }
+    if (propUser !== undefined) return
+    let cancelled = false
+    api.get('/auth/me')
+      .then(data => { if (!cancelled && data?.user) setFetchedUser(data.user) })
+      .catch(() => { /* non-blocking: the menu shows a generic name */ })
+    return () => { cancelled = true }
   }, [propUser])
-
-  // Fetch current user if not supplied
-  useEffect(() => {
-    if (!user) {
-      const fetchUserData = async () => {
-        try {
-          const data = await api.get('/auth/me')
-          if (data && data.user) {
-            setUser(data.user)
-          }
-        } catch {
-          // non-blocking
-        }
-      }
-      fetchUserData()
-    }
-  }, [user])
 
   // Click outside to close profile dropdown
   useEffect(() => {
