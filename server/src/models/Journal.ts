@@ -20,5 +20,8 @@ const JournalSchema = new Schema<IJournal>(
   { timestamps: true }
 )
 
+// Every list query filters by couple and pages newest first
+JournalSchema.index({ coupleId: 1, _id: -1 })
+
 const Journal = mongoose.model<IJournal>('Journal', JournalSchema)
 export default Journal

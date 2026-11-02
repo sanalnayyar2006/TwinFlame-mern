@@ -49,6 +49,18 @@ export const api = {
     return jsonResponse(res)
   },
 
+  // Multipart upload; the browser sets the Content-Type boundary itself
+  upload: async (endpoint: string, form: FormData) => {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: form
+    })
+    return jsonResponse(res)
+  },
+
   delete: async (endpoint: string) => {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'DELETE',

@@ -176,6 +176,14 @@ export const linkPartner = async (req: AuthRequest, res: Response): Promise<void
       return
     }
 
+    // Move both partners' open connections into the new couple room and tell their dashboards
+    const io = req.app.get('io') as import('socket.io').Server | undefined
+    if (io) {
+      const rooms = [`user_${me._id}`, `user_${partner._id}`]
+      io.in(rooms).socketsJoin(`couple_${coupleId}`)
+      io.to(rooms).emit('partner-linked', { coupleId })
+    }
+
     res.status(200).json({ message: 'Partner linked successfully' })
   } catch (error) {
     console.error('linkPartner error:', error)

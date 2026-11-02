@@ -10,6 +10,7 @@ interface MoodUpdate {
 export interface SocketHandlers {
   onMoodUpdate?: (data: MoodUpdate) => void
   onDailyConnectionUpdate?: (data: DailyConnectionUpdate) => void
+  onPartnerLinked?: () => void
 }
 
 // One connection per page, so every real-time event goes through here
@@ -43,6 +44,10 @@ export function useSocket(token: string | null, handlers: SocketHandlers) {
 
     socket.on('daily-connection-updated', (data: DailyConnectionUpdate) => {
       handlersRef.current.onDailyConnectionUpdate?.(data)
+    })
+
+    socket.on('partner-linked', () => {
+      handlersRef.current.onPartnerLinked?.()
     })
 
     return () => {

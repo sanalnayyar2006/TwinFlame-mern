@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
+import { LoadMore } from '../components/LoadMore'
+import { galleryService } from '../services/gallery.service'
+import { usePaginatedList } from '../hooks/usePaginatedList'
+import { cloudinaryThumb, cloudinaryFit } from '../utils/cloudinaryImage'
+import type { GalleryImage } from '../types/gallery'
 import {
   PhotoIcon,
   PlusIcon,
@@ -7,51 +12,15 @@ import {
 } from '../components/Icons'
 import styles from './GalleryPage.module.css'
 
-interface GalleryImage {
-  _id: string
-  imageUrl: string
-  caption?: string
-  createdAt: string
-  author?: {
-    _id: string
-    name: string
-  }
-}
-
 export default function GalleryPage() {
-  const [images, setImages] = useState<GalleryImage[]>([])
+  const photos = usePaginatedList<GalleryImage>(before => galleryService.list(before))
+  const { items: images, setItems: setImages, setTotal } = photos
   const [showModal, setShowModal] = useState(false)
   const [caption, setCaption] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
-
-  const fetchImages = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setImages(data.images || [])
-      } else {
-        setError('Unable to load gallery photos.')
-      }
-    } catch {
-      setError('Unable to connect to gallery service.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchImages()
-  }, [fetchImages])
 
   // Escape key listener for modals (R-32)
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -71,37 +40,27 @@ export default function GalleryPage() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this photo?')) return
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    if (res.ok) {
+    try {
+      await galleryService.remove(id)
       setImages(prev => prev.filter(i => i._id !== id))
+      setTotal(t => t - 1)
       setSelectedImage(null)
-    } else {
-      const txt = await res.text()
-      console.error('Delete failed:', res.status, txt)
-      alert('Delete failed: ' + txt)
+    } catch (err) {
+      setError((err as Error).message || 'Could not delete the photo. Please try again.')
     }
   }
 
   const handleEditCaption = async (id: string, caption: string) => {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery/${id}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ caption })
-    })
-    if (res.ok) {
-      const updated = await res.json()
-      const newCaption = updated?.caption ?? caption
+    try {
+      const updated = await galleryService.updateCaption(id, caption)
+      const newCaption = updated.caption ?? caption
       setImages(prev => prev.map(i => i._id === id ? { ...i, caption: newCaption } : i))
       setSelectedImage(prev => prev && prev._id === id ? { ...prev, caption: newCaption } : prev)
-    } else {
-      console.error('Edit caption failed:', res.status, await res.text())
+    } catch (err) {
+      setError((err as Error).message || 'Could not save the caption. Please try again.')
     }
   }
+
   const handleUpload = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!file) {
@@ -111,27 +70,14 @@ export default function GalleryPage() {
     try {
       setUploading(true)
       setError(null)
-      const token = localStorage.getItem('token')
-      const formData = new FormData()
-      formData.append('image', file)
-      formData.append('caption', caption.trim())
-
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setImages(prev => [data, ...prev])
-        setShowModal(false)
-        setFile(null)
-        setCaption('')
-      } else {
-        setError('Upload failed. Please check image format and size.')
-      }
-    } catch {
-      setError('Error uploading image.')
+      const photo = await galleryService.upload(file, caption.trim())
+      setImages(prev => [photo, ...prev])
+      setTotal(t => t + 1)
+      setShowModal(false)
+      setFile(null)
+      setCaption('')
+    } catch (err) {
+      setError((err as Error).message || 'Upload failed. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -174,10 +120,15 @@ export default function GalleryPage() {
         )}
 
         <main className={styles.main}>
-          {loading ? (
+          {photos.loading ? (
             <div className={styles.loadingContainer}>
               <div className={styles.loadingSpinner} />
               <p>Loading your photos...</p>
+            </div>
+          ) : photos.error ? (
+            <div className={styles.errorAlert} role="alert">
+              <span>Your photos didn't load. {photos.error}</span>
+              <button onClick={photos.reload} className={styles.dismissBtn}>Try again</button>
             </div>
           ) : images.length === 0 ? (
             <div className={styles.emptyState}>
@@ -211,9 +162,10 @@ export default function GalleryPage() {
                   aria-label={image.caption ? `View photo: ${image.caption}` : 'View photo'}
                 >
                   <img
-                    src={image.imageUrl}
+                    src={cloudinaryThumb(image.imageUrl, 480)}
                     alt={image.caption || 'Shared memory'}
                     loading="lazy"
+                    decoding="async"
                   />
                   {image.caption && (
                     <div className={styles.captionOverlay}>
@@ -223,6 +175,17 @@ export default function GalleryPage() {
                 </div>
               ))}
             </div>
+          )}
+          {!photos.loading && !photos.error && (
+            <LoadMore
+              hasMore={photos.hasMore}
+              loading={photos.loadingMore}
+              error={photos.loadMoreError}
+              onLoadMore={() => void photos.loadMore()}
+              shown={images.length}
+              total={photos.total}
+              noun="photos"
+            />
           )}
         </main>
 
@@ -281,6 +244,7 @@ export default function GalleryPage() {
                     placeholder="Where was this taken?"
                     value={caption}
                     onChange={e => setCaption(e.target.value)}
+                    maxLength={500}
                     className={styles.modalInput}
                   />
                 </div>
@@ -328,7 +292,7 @@ export default function GalleryPage() {
               onClick={e => e.stopPropagation()}
             >
               <img
-                src={selectedImage.imageUrl}
+                src={cloudinaryFit(selectedImage.imageUrl, 1600)}
                 alt={selectedImage.caption || 'Photo preview'}
               />
               {selectedImage.caption && (

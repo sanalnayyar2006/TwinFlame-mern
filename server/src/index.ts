@@ -15,6 +15,7 @@ import dailyConnectionRoutes from './routes/dailyConnection'
 import User from './models/User'
 import './config/cloudinary'
 import { corsOptions, errorHandler, isAllowedOrigin, securityHeaders } from './config/security'
+import { requestLogger } from './config/logger'
 
 connectDB()
 
@@ -24,6 +25,7 @@ const PORT = Number(process.env.PORT) || 8000
 // Render sits behind one proxy; needed for correct client IPs in rate limiting
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
 
+app.use(requestLogger)
 app.use(securityHeaders)
 app.use(cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))
@@ -35,6 +37,10 @@ app.use('/api/gallery', galleryRoutes)
 app.use('/api/daily-connection', dailyConnectionRoutes)
 app.get('/health', (req, res) => {
   res.json({ status: 'TwinFlame API is running 🔥' })
+})
+// Unknown API routes get JSON, not the SPA's index.html
+app.use('/api', (_req, res) => {
+  res.status(404).json({ message: 'API route not found' })
 })
 
 const server = createServer(app)
@@ -64,6 +70,8 @@ io.use(async (socket, next) => {
 
     ;(socket as any).userId = user._id.toString()
     ;(socket as any).coupleId = user.coupleId
+    // Personal room so the server can reach this user before they're in a couple (see linkPartner)
+    socket.join(`user_${user._id}`)
     if (user.coupleId) {
       socket.join(`couple_${user.coupleId}`)
     }

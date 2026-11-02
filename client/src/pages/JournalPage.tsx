@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { api } from '../lib/api'
+import { useState, useEffect, useRef } from 'react'
 import { sanitizeJournalHtml } from '../utils/sanitizeJournalHtml'
+import { journalService } from '../services/journal.service'
+import { usePaginatedList } from '../hooks/usePaginatedList'
 import { Navigation } from '../components/Navigation'
+import { LoadMore } from '../components/LoadMore'
+import type { JournalEntry } from '../types/journal'
 import {
   BookOpenIcon,
   PlusIcon,
@@ -11,29 +14,18 @@ import {
 } from '../components/Icons'
 import styles from './JournalPage.module.css'
 
-interface Author {
-  _id: string
-  name: string
-}
-
-interface JournalEntry {
-  _id: string
-  title: string
-  content: string
-  author: Author
-  createdAt: string
-  imageUrl?: string
-}
-
 const JournalPage = () => {
   const [view, setView] = useState<'list' | 'write'>('list')
-  const [entries, setEntries] = useState<JournalEntry[]>([])
+  const feed = usePaginatedList<JournalEntry>(before => journalService.list(before))
+  const { items: entries, setItems: setEntries, setTotal } = feed
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  // Entry whose card-menu photo is uploading or being removed
+  const [photoBusyId, setPhotoBusyId] = useState<string | null>(null)
+  const [editorUploading, setEditorUploading] = useState(false)
   const [viewingEntry, setViewingEntry] = useState<JournalEntry | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -42,25 +34,6 @@ const JournalPage = () => {
   const draftKey = 'journalDraft_' + (localStorage.getItem('token') || 'anon')
   const [hasDraft, setHasDraft] = useState(false)
   const [isDraftMode, setIsDraftMode] = useState(false)
-
-  const fetchEntries = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await api.get('/journal')
-      if (data && data.entries) {
-        setEntries(data.entries)
-      }
-    } catch {
-      setError('Unable to load entries. Please check your connection.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchEntries()
-  }, [fetchEntries])
 
   useEffect(() => {
     const draft = localStorage.getItem(draftKey)
@@ -97,12 +70,10 @@ const JournalPage = () => {
      try {
        setSubmitting(true)
        setError(null)
-       const data = await api.post('/journal', {
-         title: title.trim(),
-         content: html
-       })
-      if (data && data.entry) {
-         setEntries(prev => [data.entry, ...prev])
+       const entry = await journalService.create(title.trim(), html)
+      if (entry) {
+         setEntries(prev => [entry, ...prev])
+         setTotal(t => t + 1)
          setTitle('')
          setContent('')
          if (editorRef.current) editorRef.current.innerHTML = ''
@@ -114,8 +85,7 @@ const JournalPage = () => {
          setView('list')
       }
     } catch (err) {
-      console.error('Save failed:', err)
-      setError('Could not save your entry. Please try again.')
+      setError((err as Error).message || 'Could not save your entry. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -125,13 +95,82 @@ const JournalPage = () => {
     if (!window.confirm('Delete this journal entry?')) return
     try {
       setDeletingId(id)
-      await api.delete(`/journal/${id}`)
+      await journalService.remove(id)
        setEntries(prev => prev.filter(e => e._id !== id))
+       setTotal(t => t - 1)
        setViewingEntry(prev => (prev?._id === id ? null : prev))
-    } catch {
-      alert('Failed to delete entry.')
+    } catch (err) {
+      setError((err as Error).message || 'Failed to delete entry.')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const replaceEntry = (updated: JournalEntry) =>
+    setEntries(prev => prev.map(en => (en._id === updated._id ? { ...en, content: updated.content } : en)))
+
+  // Card menu: upload a photo, then append it to the saved entry
+  const addPhotoToEntry = async (entry: JournalEntry, file: File) => {
+    setPhotoBusyId(entry._id)
+    setError(null)
+    try {
+      const url = await journalService.uploadImage(file)
+      replaceEntry(await journalService.updateContent(entry._id, `${entry.content}<img src="${url}">`))
+      setMenuOpenId(null)
+    } catch (err) {
+      setError((err as Error).message || 'Could not add the photo. Please try again.')
+    } finally {
+      setPhotoBusyId(null)
+    }
+  }
+
+  // Card menu: the server also deletes the removed photos from storage
+  const removePhotosFromEntry = async (entry: JournalEntry) => {
+    setPhotoBusyId(entry._id)
+    setError(null)
+    try {
+      replaceEntry(await journalService.updateContent(entry._id, entry.content.replace(/<img[^>]*>/g, '')))
+      setMenuOpenId(null)
+    } catch (err) {
+      setError((err as Error).message || 'Could not remove the photo. Please try again.')
+    } finally {
+      setPhotoBusyId(null)
+    }
+  }
+
+  // Editor: upload first, then insert the hosted URL at the saved cursor position
+  const insertPhotoInEditor = async (file: File) => {
+    setEditorUploading(true)
+    setError(null)
+    try {
+      const url = await journalService.uploadImage(file)
+      if (!editorRef.current) return
+      editorRef.current.focus()
+      const sel = window.getSelection()
+      sel?.removeAllRanges()
+      if (savedRangeRef.current) sel?.addRange(savedRangeRef.current)
+      const img = document.createElement('img')
+      img.src = url
+      img.alt = ''
+      if (savedRangeRef.current) {
+        savedRangeRef.current.deleteContents()
+        savedRangeRef.current.insertNode(img)
+        // move cursor after image
+        const range = document.createRange()
+        range.setStartAfter(img)
+        range.collapse(true)
+        sel?.removeAllRanges()
+        sel?.addRange(range)
+        savedRangeRef.current = range
+      } else {
+        editorRef.current.appendChild(img)
+      }
+      setContent(editorRef.current.innerHTML)
+    } catch (err) {
+      setError((err as Error).message || 'Could not upload the photo. Please try again.')
+    } finally {
+      setEditorUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -233,10 +272,15 @@ const JournalPage = () => {
         {/* List View */}
         {view === 'list' && (
           <main className={styles.main}>
-            {loading ? (
+            {feed.loading ? (
               <div className={styles.loadingContainer}>
                 <div className={styles.loadingSpinner} />
                 <p>Loading your journal...</p>
+              </div>
+            ) : feed.error ? (
+              <div className={styles.errorAlert} role="alert">
+                <span>Your journal didn't load. {feed.error}</span>
+                <button onClick={feed.reload} className={styles.dismissBtn}>Try again</button>
               </div>
             ) : entries.length === 0 ? (
               <div className={styles.emptyState}>
@@ -279,28 +323,16 @@ const JournalPage = () => {
                       </button>
                       {menuOpenId === entry._id && (
                         <div className={styles.menuPopover} onClick={e => e.stopPropagation()}>
-                          <label className={styles.menuItem}>
-                            Add photo
-                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                          <label className={styles.menuItem} aria-disabled={photoBusyId === entry._id}>
+                            {photoBusyId === entry._id ? 'Working…' : 'Add photo'}
+                            <input type="file" accept="image/*" style={{ display: 'none' }} disabled={photoBusyId === entry._id} onChange={(e) => {
                               const f = e.target.files?.[0]
-                              if (!f) return
-                              const r = new FileReader()
-                              r.onload = async () => {
-                                const newContent = entry.content + `<img src="${r.result}" />`
-                                await api.patch(`/journal/${entry._id}`, { content: newContent })
-                                setEntries(prev => prev.map(en => en._id === entry._id ? { ...en, content: newContent } : en))
-                                setMenuOpenId(null)
-                              }
-                              r.readAsDataURL(f)
+                              e.target.value = ''
+                              if (f) void addPhotoToEntry(entry, f)
                             }} />
                           </label>
                           {entry.content?.includes('<img') && (
-                            <button className={styles.menuItem} onClick={async () => {
-                              const stripped = entry.content.replace(/<img[^>]*>/g, '')
-                              await api.patch(`/journal/${entry._id}`, { content: stripped })
-                              setEntries(prev => prev.map(en => en._id === entry._id ? { ...en, content: stripped } : en))
-                              setMenuOpenId(null)
-                            }}>Remove photo</button>
+                            <button className={styles.menuItem} disabled={photoBusyId === entry._id} onClick={() => void removePhotosFromEntry(entry)}>Remove photo</button>
                           )}
                           <button className={styles.menuItem} disabled={deletingId === entry._id} onClick={(e) => { e.stopPropagation(); handleDelete(entry._id) }}>{deletingId === entry._id ? 'Deleting…' : 'Delete'}</button>
                         </div>
@@ -317,6 +349,17 @@ const JournalPage = () => {
                   </article>
                 ))}
               </div>
+            )}
+            {!feed.loading && !feed.error && (
+              <LoadMore
+                hasMore={feed.hasMore}
+                loading={feed.loadingMore}
+                error={feed.loadMoreError}
+                onLoadMore={() => void feed.loadMore()}
+                shown={entries.length}
+                total={feed.total}
+                noun="entries"
+              />
             )}
           </main>
         )}
@@ -359,38 +402,11 @@ const JournalPage = () => {
                 <input ref={fileInputRef} type="file" accept="image/*" onClick={() => {
                   const sel = window.getSelection()
                   if (sel && sel.rangeCount > 0) savedRangeRef.current = sel.getRangeAt(0).cloneRange()
-                }} onChange={(e) => {
+                }} disabled={editorUploading} aria-label="Add a photo to this entry" onChange={(e) => {
                   const f = e.target.files?.[0]
-                  if (!f) return
-                  const r = new FileReader()
-                  r.onload = () => {
-                    if (editorRef.current) {
-                      editorRef.current.focus()
-                      const sel = window.getSelection()
-                      sel?.removeAllRanges()
-                      if (savedRangeRef.current) sel?.addRange(savedRangeRef.current)
-                      const img = document.createElement('img')
-                      img.src = r.result as string
-                      img.style.maxWidth = '100%'
-                      if (savedRangeRef.current) {
-                        savedRangeRef.current.deleteContents()
-                        savedRangeRef.current.insertNode(img)
-                        // move cursor after image
-                        const range = document.createRange()
-                        range.setStartAfter(img)
-                        range.collapse(true)
-                        sel?.removeAllRanges()
-                        sel?.addRange(range)
-                        savedRangeRef.current = range
-                      } else {
-                        editorRef.current.appendChild(img)
-                      }
-                      const html = editorRef.current.innerHTML
-                      setContent(html)
-                    }
-                  }
-                  r.readAsDataURL(f)
+                  if (f) void insertPhotoInEditor(f)
                 }} />
+                {editorUploading && <p className={styles.label} role="status">Uploading photo…</p>}
                 {content.includes('<img') && (
                   <button type="button" className={styles.removePhotoBtn} onClick={() => {
                     if (editorRef.current) {
@@ -437,7 +453,7 @@ const JournalPage = () => {
                 <button
                   type="submit"
                   className={styles.submitBtn}
-                  disabled={submitting || !title.trim() || !content.trim()}
+                  disabled={submitting || editorUploading || !title.trim() || !content.trim()}
                 >
                   {submitting ? 'Saving memory...' : 'Save to Journal'}
                 </button>

@@ -1,0 +1,40 @@
+/* text-muted on page background passes AA (7.4:1+) */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) 0;
+}
+
+.count {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.error {
+  font-size: 0.9rem;
+  color: #fca5a5;
+}
+
+.button {
+  min-height: 44px;
+  min-width: 160px;
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-sm);
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border-hover);
+  color: var(--color-text-light);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

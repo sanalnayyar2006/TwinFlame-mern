@@ -1,22 +1,9 @@
-import cloudinary from '../config/cloudinary'
-import streamifier from 'streamifier'
+import cloudinary, { uploadBuffer } from '../config/cloudinary'
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth'
 import Gallery from '../models/Gallery'
 import { parseBody, captionSchema } from '../validation/schemas'
-
-const streamUpload = (buffer: Buffer): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: 'twinflame' },
-      (error, result) => {
-        if (result) resolve(result)
-        else reject(error)
-      }
-    )
-    streamifier.createReadStream(buffer).pipe(stream)
-  })
-}
+import { parsePageQuery, toPage } from '../utils/pagination'
 
 export const uploadPhoto = async (req: AuthRequest, res: Response) => {
   try {
@@ -31,7 +18,7 @@ export const uploadPhoto = async (req: AuthRequest, res: Response) => {
     const body = parseBody(captionSchema, req.body, res)
     if (!body) return
 
-    const result = await streamUpload(req.file.buffer)
+    const result = await uploadBuffer(req.file.buffer, 'twinflame')
 
     const photo = await Gallery.create({
       author: req.user._id,
@@ -55,11 +42,20 @@ export const getPhotos = async (req: AuthRequest, res: Response): Promise<void> 
       return
     }
 
-    const images = await Gallery.find({ coupleId: req.user.coupleId })
-      .populate('author', 'name')
-      .sort({ createdAt: -1 })
+    const page = parsePageQuery(req.query)
+    if (!page) {
+      res.status(400).json({ message: 'Invalid page request' })
+      return
+    }
 
-    res.status(200).json({ images })
+    const filter = { coupleId: req.user.coupleId, ...(page.before && { _id: { $lt: page.before } }) }
+    const [docs, total] = await Promise.all([
+      Gallery.find(filter).populate('author', 'name').sort({ _id: -1 }).limit(page.limit + 1),
+      Gallery.countDocuments({ coupleId: req.user.coupleId })
+    ])
+    const { items, nextCursor } = toPage(docs, page.limit)
+
+    res.status(200).json({ images: items, nextCursor, total })
   } catch (err) {
     res.status(500).json({ message: 'Server error' })
   }

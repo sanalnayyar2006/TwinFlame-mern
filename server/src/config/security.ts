@@ -3,6 +3,7 @@ import type { CorsOptionsDelegate } from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import multer from 'multer'
+import { logger } from './logger'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -95,6 +96,6 @@ export const errorHandler: ErrorRequestHandler = (err, _req: Request, res: Respo
     res.status(400).json({ message: 'Invalid JSON in request body.' })
     return
   }
-  console.error('Unhandled error:', err)
+  logger.error({ err }, 'Unhandled error')
   res.status(500).json({ message: 'Server error' })
 }

@@ -19,5 +19,8 @@ const GallerySchema = new Schema<IGallery>(
     { timestamps: true }
 )
 
+// Every list query filters by couple and pages newest first
+GallerySchema.index({ coupleId: 1, _id: -1 })
+
 const Gallery = mongoose.model<IGallery>('Gallery', GallerySchema)
 export default Gallery

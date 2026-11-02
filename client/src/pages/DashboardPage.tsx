@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useSocket } from '../hooks/useSocket'
 import { useDailyConnection } from '../hooks/useDailyConnection'
+import { journalService } from '../services/journal.service'
+import { galleryService } from '../services/gallery.service'
 import { DailyConnectionCard } from '../components/dashboard/DailyConnectionCard'
 import { Navigation } from '../components/Navigation'
 import {
@@ -84,7 +86,12 @@ const DashboardPage = () => {
         }
       })
     },
-    onDailyConnectionUpdate: dailyConnection.handleRealtimeUpdate
+    onDailyConnectionUpdate: dailyConnection.handleRealtimeUpdate,
+    // A partner just linked: load their name and mood, and today's shared card
+    onPartnerLinked: () => {
+      void loadDashboardData()
+      dailyConnection.reload()
+    }
   })
 
   // Keyboard escape listener for custom mood modal (R-32)
@@ -99,89 +106,58 @@ const DashboardPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
+  const applyUser = useCallback((u: User) => {
+    setUser(u)
+    if (u.mood) setSelectedMood(u.mood)
+  }, [])
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const data = await api.get('/auth/me')
+      if (data.user) applyUser(data.user)
+    } catch {
+      // keep showing what we have
+    }
+  }, [applyUser])
+
+  // Only the two newest of each are needed here; totals come from the server
   const loadDashboardData = useCallback(async () => {
     try {
       setError(null)
-      const userData = await api.get('/auth/me')
-      if (userData.user) {
-        setUser(userData.user)
-        if (userData.user.mood) {
-          setSelectedMood(userData.user.mood)
-        }
-      }
+      const [userData, journals, photos] = await Promise.all([
+        api.get('/auth/me'),
+        journalService.list(undefined, 2).catch(() => null),
+        galleryService.list(undefined, 2).catch(() => null)
+      ])
+      if (userData.user) applyUser(userData.user)
 
-       // Fetch latest journal entry for honest quick link
-       try {
-         const journalData = await api.get('/journal')
-         if (journalData.entries && journalData.entries.length > 0) {
-           setRecentJournal(journalData.entries[0])
-           setStats(prev => ({ ...prev, journals: journalData.entries.length }))
-           setRecentActivity(prev => [
-             ...prev,
-             ...journalData.entries.slice(0, 2).map((e: RecentJournal) => ({
-               type: 'journal',
-               text: `New journal: ${e.title}`,
-               date: e.createdAt
-             }))
-           ])
-         }
-       } catch {
-         // non-blocking
-       }
-
-      // Fetch latest gallery photo for honest quick link
-      try {
-        const token = localStorage.getItem('token')
-        const galleryRes = await fetch(`${import.meta.env.VITE_API_URL}/api/gallery`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-         if (galleryRes.ok) {
-           const galleryData = await galleryRes.json()
-           if (galleryData.images && galleryData.images.length > 0) {
-             setRecentPhoto(galleryData.images[0])
-             setStats(prev => ({ ...prev, photos: galleryData.images.length }))
-             setRecentActivity(prev => [
-               ...prev,
-               ...galleryData.images.slice(0, 2).map((img: RecentPhoto) => ({
-                 type: 'photo',
-                 text: img.caption || 'New photo added',
-                 date: new Date().toISOString()
-               }))
-             ])
-           }
-         }
-      } catch {
-        // non-blocking
-      }
+      setRecentJournal(journals?.items[0] ?? null)
+      setRecentPhoto(photos?.items[0] ?? null)
+      setStats(prev => ({ ...prev, journals: journals?.total ?? 0, photos: photos?.total ?? 0 }))
+      // Rebuilt each time so reloads never duplicate items
+      setRecentActivity([
+        ...(journals?.items ?? []).map(e => ({ type: 'journal', text: `New journal: ${e.title}`, date: e.createdAt })),
+        ...(photos?.items ?? []).map(img => ({ type: 'photo', text: img.caption || 'New photo added', date: img.createdAt }))
+      ].sort((x, y) => y.date.localeCompare(x.date)))
     } catch {
       setError('Unable to load profile data.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyUser])
 
   useEffect(() => {
     loadDashboardData()
   }, [loadDashboardData])
 
-  // Periodic polling for partner updates
+  // Live updates come over the socket; this only catches up after the tab was in the background
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const data = await api.get('/auth/me')
-        if (data.user) {
-          setUser(data.user)
-          if (data.user.mood) {
-            setSelectedMood(data.user.mood)
-          }
-        }
-      } catch {
-        // silent fail on poll
-      }
-    }, 8000)
-
-    return () => clearInterval(interval)
-  }, [])
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshUser()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [refreshUser])
 
   const handleMoodSelect = async (mood: string) => {
     if (selectedMood === mood) {
