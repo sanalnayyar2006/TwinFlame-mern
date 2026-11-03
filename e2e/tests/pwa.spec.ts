@@ -37,7 +37,9 @@ test('opens offline from the cached app shell, and never caches private data', a
 test('offers partner-answered notifications while waiting', async ({ browser, request }) => {
   const a = await registerUser(request, 'Pa'), b = await registerUser(request, 'Pb')
   await linkCouple(request, a, b)
-  const page = await signedInPage(browser, a)
+  // Set permission explicitly: Playwright's headless shell (used in CI) reports "denied" by
+  // default, which correctly shows the "blocked" message instead of the button
+  const page = await signedInPage(browser, a, { permissions: ['notifications'] })
   await page.goto('/dashboard')
   await page.evaluate(async () => { await navigator.serviceWorker.ready })
   await page.reload()

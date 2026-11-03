@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 4310
 const isCI = !!process.env.CI
+// Local runs use the installed Chrome. CI uses Playwright's full Chromium, not the default
+// "headless shell": the shell reports Notification.permission as "denied" even when granted.
+const browser = { channel: isCI ? 'chromium' : 'chrome' }
 
 export default defineConfig({
   testDir: './tests',
@@ -14,14 +17,13 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    // Local runs use the installed Chrome; CI installs Playwright's Chromium
-    ...(isCI ? {} : { channel: 'chrome' })
+    ...browser
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], ...(isCI ? {} : { channel: 'chrome' }) }, grepInvert: /@screenshots/ },
-    { name: 'mobile', use: { ...devices['Pixel 7'], ...(isCI ? {} : { channel: 'chrome' }) }, grep: /@mobile/ },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], ...browser }, grepInvert: /@screenshots/ },
+    { name: 'mobile', use: { ...devices['Pixel 7'], ...browser }, grep: /@mobile/ },
     // README images: pnpm --filter e2e screenshots (writes to .github/assets)
-    { name: 'screenshots', use: { ...(isCI ? {} : { channel: 'chrome' }) }, grep: /@screenshots/ }
+    { name: 'screenshots', use: { ...browser }, grep: /@screenshots/ }
   ],
   webServer: {
     command: 'pnpm --filter server exec tsx tests/e2eServer.ts',
