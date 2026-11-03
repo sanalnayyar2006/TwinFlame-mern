@@ -68,7 +68,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   font-size: 0.9rem;
   font-weight: 600;
@@ -80,7 +80,7 @@
 }
 
 .writeBtn:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
 }
 
 .errorAlert {
@@ -182,7 +182,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   padding: 10px 20px;
   border-radius: var(--radius-sm);
@@ -229,7 +229,7 @@
 .authorBadge {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   background: var(--color-primary-muted);
   padding: 3px 8px;
   border-radius: var(--radius-xs);
@@ -364,7 +364,7 @@
 }
 
 .submitBtn {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   padding: 10px 22px;
   border-radius: var(--radius-sm);
@@ -373,7 +373,7 @@
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
 }
 
 .submitBtn:disabled {
@@ -420,3 +420,11 @@
 
 .entryCard { position: relative; }
 .removePhotoBtn { padding: 6px 12px; border: 1px solid var(--color-border, #e5e7eb); border-radius: 8px; background: var(--color-surface, #fff); cursor: pointer; font-size: 0.85rem; color: #ef4444; }
+/* Title is a button so entries open from the keyboard; it should still look like the heading */
+.entryTitleButton {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}

@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { FlameIcon } from '../components/Icons'
 import { GoogleSignInButton, type GoogleAuthResponse } from '../components/GoogleSignInButton'
+import { DemoEntry } from '../components/DemoEntry'
+import { isDemoEnabled } from '../hooks/useDemoLogin'
 import styles from './loginPage.module.css'
 
 const LoginPage = () => {
@@ -10,6 +12,7 @@ const LoginPage = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const sessionExpired = useSearchParams()[0].get('session') === 'expired'
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -92,6 +95,9 @@ const LoginPage = () => {
 
         <main className={styles.main}>
           <h1 className={styles.heading}>Welcome back</h1>
+          {sessionExpired && !error && (
+            <p className={styles.error} role="status">Your session ended. Sign in again to continue.</p>
+          )}
 
           <form className={styles.form} onSubmit={handleLogin}>
             <div className={styles.inputGroup}>
@@ -146,6 +152,7 @@ const LoginPage = () => {
               <Link to="/register">Create one</Link>
             </p>
           </form>
+          {isDemoEnabled && <DemoEntry />}
         </main>
       </div>
     </div>

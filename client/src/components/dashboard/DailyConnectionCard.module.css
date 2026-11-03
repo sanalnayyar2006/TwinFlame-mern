@@ -41,6 +41,26 @@
   text-transform: uppercase;
 }
 
+.badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* Accent-fill orange behind dark text reads as warmth, not a warning (6.1:1) */
+.streakBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-bg-dark);
+  background: var(--color-accent);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
 .doneBadge {
   display: inline-flex;
   align-items: center;
@@ -149,15 +169,15 @@
   transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
-/* primary-hover as the resting color: white on primary is 3.99:1, on primary-hover 5.08:1 */
+/* AA-safe fill tokens from index.css */
 .btnPrimary {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill);
   color: #ffffff;
   border: none;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  filter: brightness(0.92);
+  background: var(--color-primary-fill-hover);
 }
 
 .btnSecondary {
@@ -190,6 +210,18 @@
   color: var(--color-text-light);
   text-decoration: underline;
   text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Text-sized button inside a sentence; the tap area grows with padding, not the text */
+.inlineButton {
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 12px 4px;
+  margin: -12px -4px;
   cursor: pointer;
 }
 

@@ -1,176 +1,41 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../lib/api'
 import { useSocket } from '../hooks/useSocket'
 import { useDailyConnection } from '../hooks/useDailyConnection'
-import { journalService } from '../services/journal.service'
-import { galleryService } from '../services/gallery.service'
+import { useDashboardData } from '../hooks/useDashboardData'
+import { useMood } from '../hooks/useMood'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 import { DailyConnectionCard } from '../components/dashboard/DailyConnectionCard'
 import { Navigation } from '../components/Navigation'
-import {
-  FlameIcon,
-  HeartIcon,
-  BookOpenIcon,
-  PhotoIcon,
-  CardsIcon,
-  PlusIcon,
-  XIcon
-} from '../components/Icons'
+import { MoodSection } from './dashboard/MoodSection'
+import { CustomMoodDialog } from './dashboard/CustomMoodDialog'
+import { FlameIcon, HeartIcon, BookOpenIcon, PhotoIcon, CardsIcon } from '../components/Icons'
 import styles from './DashboardPage.module.css'
 
-interface Partner {
-  _id: string
-  name: string
-  mood?: string | null
-}
-
-interface User {
-  _id: string
-  name: string
-  email?: string
-  coupleCode: string
-  mood?: string | null
-  partnerId: Partner | null
-}
-
-interface RecentJournal {
-  _id: string
-  title: string
-  createdAt: string
-}
-
-interface RecentPhoto {
-  _id: string
-  imageUrl: string
-  caption?: string
-}
-
-const MOODS = [
-  { label: 'Calm', color: '#60a5fa' },
-  { label: 'Happy', color: '#4ade80' },
-  { label: 'Loved', color: '#d4637f' },
-  { label: 'Energetic', color: '#e07a5f' },
-  { label: 'Tired', color: '#a78bfa' },
-]
-
 const DashboardPage = () => {
-  const [user, setUser] = useState<User | null>(null)
-  const [selectedMood, setSelectedMood] = useState<string | null>(null)
-  const [customMoodText, setCustomMoodText] = useState('')
-  const [customMoodColor, setCustomMoodColor] = useState('#d4637f')
-  const [showMoodModal, setShowMoodModal] = useState(false)
-  const [recentJournal, setRecentJournal] = useState<RecentJournal | null>(null)
-  const [recentPhoto, setRecentPhoto] = useState<RecentPhoto | null>(null)
-  const [stats, setStats] = useState({ journals: 0, photos: 0, streak: 0 })
-  const [recentActivity, setRecentActivity] = useState<{ type: string; text: string; date: string }[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
+  const [showMoodDialog, setShowMoodDialog] = useState(false)
 
+  const { user, setUser, recentJournal, recentPhoto, counts, activity, loading, error, reload } = useDashboardData()
+  const mood = useMood(user, setUser)
   const dailyConnection = useDailyConnection(user?._id ?? null)
+  const push = usePushNotifications()
 
   // Real-time sync via socket
   useSocket(token, {
-    onMoodUpdate: (data) => {
-      if (!user) return
-      if (data.userId === user._id) return
-      setUser(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          partnerId: prev.partnerId
-            ? { ...prev.partnerId, mood: data.mood ?? null }
-            : null
-        }
-      })
+    onMoodUpdate: data => {
+      if (user && data.userId !== user._id) mood.applyPartnerMood(data.mood ?? null)
     },
     onDailyConnectionUpdate: dailyConnection.handleRealtimeUpdate,
     // A partner just linked: load their name and mood, and today's shared card
     onPartnerLinked: () => {
-      void loadDashboardData()
+      void reload()
       dailyConnection.reload()
     }
   })
 
-  // Keyboard escape listener for custom mood modal (R-32)
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && showMoodModal) {
-      setShowMoodModal(false)
-    }
-  }, [showMoodModal])
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
-
-  const applyUser = useCallback((u: User) => {
-    setUser(u)
-    if (u.mood) setSelectedMood(u.mood)
-  }, [])
-
-  const refreshUser = useCallback(async () => {
-    try {
-      const data = await api.get('/auth/me')
-      if (data.user) applyUser(data.user)
-    } catch {
-      // keep showing what we have
-    }
-  }, [applyUser])
-
-  // Only the two newest of each are needed here; totals come from the server
-  const loadDashboardData = useCallback(async () => {
-    try {
-      setError(null)
-      const [userData, journals, photos] = await Promise.all([
-        api.get('/auth/me'),
-        journalService.list(undefined, 2).catch(() => null),
-        galleryService.list(undefined, 2).catch(() => null)
-      ])
-      if (userData.user) applyUser(userData.user)
-
-      setRecentJournal(journals?.items[0] ?? null)
-      setRecentPhoto(photos?.items[0] ?? null)
-      setStats(prev => ({ ...prev, journals: journals?.total ?? 0, photos: photos?.total ?? 0 }))
-      // Rebuilt each time so reloads never duplicate items
-      setRecentActivity([
-        ...(journals?.items ?? []).map(e => ({ type: 'journal', text: `New journal: ${e.title}`, date: e.createdAt })),
-        ...(photos?.items ?? []).map(img => ({ type: 'photo', text: img.caption || 'New photo added', date: img.createdAt }))
-      ].sort((x, y) => y.date.localeCompare(x.date)))
-    } catch {
-      setError('Unable to load profile data.')
-    } finally {
-      setLoading(false)
-    }
-  }, [applyUser])
-
-  useEffect(() => {
-    loadDashboardData()
-  }, [loadDashboardData])
-
-  // Live updates come over the socket; this only catches up after the tab was in the background
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void refreshUser()
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [refreshUser])
-
-  const handleMoodSelect = async (mood: string) => {
-    if (selectedMood === mood) {
-      setSelectedMood(null)
-      await api.patch('/auth/mood', { mood: null })
-    } else {
-      setSelectedMood(mood)
-      await api.patch('/auth/mood', { mood })
-    }
-  }
-
   const partnerName = user?.partnerId?.name ?? null
-  const partnerMood = user?.partnerId?.mood ?? null
   const coupleTitle = user && partnerName ? `${user.name} & ${partnerName}` : (user?.name ?? 'TwinFlame')
 
   return (
@@ -200,7 +65,7 @@ const DashboardPage = () => {
         ) : error ? (
           <div className={styles.errorAlert}>
             <p>{error}</p>
-            <button onClick={loadDashboardData} className={styles.retryBtn}>Retry</button>
+            <button onClick={() => void reload()} className={styles.retryBtn}>Retry</button>
           </div>
         ) : (
           <main className={styles.dashboardGrid}>
@@ -216,119 +81,22 @@ const DashboardPage = () => {
                 onComplete={dailyConnection.complete}
                 onUpdateNote={dailyConnection.updateNote}
                 partnerName={partnerName}
+                push={push.state === 'unavailable' ? undefined : {
+                  state: push.state,
+                  busy: push.busy,
+                  error: push.error,
+                  onEnable: () => void push.enable(),
+                  onDisable: () => void push.disable()
+                }}
               />
 
-              {/* Mood Section */}
-              <section className={styles.moodSection} aria-label="Mood tracker">
-                <div className={styles.moodSectionHeader}>
-                  <h2 className={styles.sectionTitle}>How are you feeling right now?</h2>
-                  {partnerMood && (
-                    <p className={styles.partnerMoodStatus}>
-                      <span
-                        className={styles.partnerDot}
-                        style={{
-                          background: partnerMood.includes('||')
-                            ? partnerMood.split('||')[1]
-                            : (MOODS.find(m => m.label === partnerMood)?.color ?? '#d4637f')
-                        }}
-                      />
-                      {partnerName} is feeling{' '}
-                      <strong>
-                        {partnerMood.includes('||') ? partnerMood.split('||')[0] : partnerMood}
-                      </strong>
-                    </p>
-                  )}
-                </div>
-
-                <div className={styles.moodGrid}>
-                  {MOODS.map(mood => {
-                    const isMyMood = selectedMood === mood.label
-                    const isPartnerMood = partnerMood === mood.label
-                    return (
-                      <button
-                        key={mood.label}
-                        type="button"
-                        className={`${styles.moodItem} ${isMyMood ? styles.moodItemSelected : ''}`}
-                        onClick={() => handleMoodSelect(mood.label)}
-                        aria-pressed={isMyMood}
-                      >
-                        <div className={styles.moodCircleWrapper}>
-                          {isPartnerMood && partnerName && (
-                            <div
-                              className={styles.partnerAvatar}
-                              style={{ background: mood.color }}
-                              title={`${partnerName}'s mood`}
-                            >
-                              {partnerName[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div
-                            className={styles.moodCircle}
-                            style={{
-                              borderColor: mood.color,
-                              background: isMyMood ? mood.color : `${mood.color}15`
-                            }}
-                          >
-                            <div
-                              className={styles.moodDot}
-                              style={{ background: isMyMood ? '#ffffff' : mood.color }}
-                            />
-                          </div>
-                        </div>
-                        <span className={styles.moodLabel}>{mood.label}</span>
-                      </button>
-                    )
-                  })}
-
-                  {/* Custom mood tag if active */}
-                  {(selectedMood?.includes('||') || partnerMood?.includes('||')) && (() => {
-                    const moodStr = selectedMood?.includes('||') ? selectedMood! : partnerMood!
-                    const [label, color] = moodStr.split('||')
-                    const isMy = selectedMood === moodStr
-                    const isPartner = partnerMood === moodStr
-                    return (
-                      <button
-                        type="button"
-                        className={`${styles.moodItem} ${isMy ? styles.moodItemSelected : ''}`}
-                        onClick={() => handleMoodSelect(moodStr)}
-                      >
-                        <div className={styles.moodCircleWrapper}>
-                          {isPartner && partnerName && (
-                            <div className={styles.partnerAvatar} style={{ background: color }}>
-                              {partnerName[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div
-                            className={styles.moodCircle}
-                            style={{ borderColor: color, background: isMy ? color : `${color}15` }}
-                          >
-                            <div
-                              className={styles.moodDot}
-                              style={{ background: isMy ? '#ffffff' : color }}
-                            />
-                          </div>
-                        </div>
-                        <span className={styles.moodLabel}>{label}</span>
-                      </button>
-                    )
-                  })()}
-
-                  {/* Add custom mood button */}
-                  <button
-                    type="button"
-                    className={styles.moodItem}
-                    onClick={() => setShowMoodModal(true)}
-                    aria-label="Add custom mood"
-                  >
-                    <div className={styles.moodCircleWrapper}>
-                      <div className={`${styles.moodCircle} ${styles.customAddCircle}`}>
-                        <PlusIcon size={20} />
-                      </div>
-                    </div>
-                    <span className={styles.moodLabel}>Custom</span>
-                  </button>
-                </div>
-              </section>
+              <MoodSection
+                myMood={mood.myMood}
+                partnerMood={mood.partnerMood}
+                partnerName={partnerName}
+                onSelect={m => void mood.select(m)}
+                onAddCustom={() => setShowMoodDialog(true)}
+              />
             </div>
 
             {/* Right Column (Memories & Games) - fills the viewport nicely */}
@@ -428,17 +196,17 @@ const DashboardPage = () => {
             <div className={styles.statsGrid}>
               <div className={styles.statCard}>
                 <BookOpenIcon size={20} className={styles.statIcon} />
-                <span className={styles.statValue}>{stats.journals}</span>
+                <span className={styles.statValue}>{counts.journals}</span>
                 <span className={styles.statLabel}>Journal Entries</span>
               </div>
               <div className={styles.statCard}>
                 <PhotoIcon size={20} className={styles.statIcon} />
-                <span className={styles.statValue}>{stats.photos}</span>
+                <span className={styles.statValue}>{counts.photos}</span>
                 <span className={styles.statLabel}>Photos</span>
               </div>
               <div className={styles.statCard}>
                 <FlameIcon size={20} className={styles.statIcon} />
-                <span className={styles.statValue}>{stats.streak}</span>
+                <span className={styles.statValue}>{dailyConnection.data?.streak.current ?? 0}</span>
                 <span className={styles.statLabel}>Day Streak</span>
               </div>
             </div>
@@ -466,11 +234,11 @@ const DashboardPage = () => {
 
           <section className={styles.activitySection} aria-label="Recent activity">
             <h2 className={styles.sectionTitle}>Recent Activity</h2>
-            {recentActivity.length === 0 ? (
+            {activity.length === 0 ? (
               <p className={styles.emptyState}>No recent activity yet.</p>
             ) : (
               <ul className={styles.activityList}>
-                {recentActivity.slice(0, 2).map((a, i) => (
+                {activity.slice(0, 2).map((a, i) => (
                   <li key={i} className={styles.activityItem}>{a.text}</li>
                 ))}
               </ul>
@@ -478,86 +246,8 @@ const DashboardPage = () => {
           </section>
       </div>
 
-      {/* Accessible Custom Mood Modal (R-32) */}
-      {showMoodModal && (
-        <div
-          className={styles.modalBackdrop}
-          onClick={() => setShowMoodModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="custom-mood-title"
-        >
-          <div
-            className={styles.modalCard}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <h3 id="custom-mood-title" className={styles.modalTitle}>Set Custom Mood</h3>
-              <button
-                type="button"
-                className={styles.modalCloseBtn}
-                onClick={() => setShowMoodModal(false)}
-                aria-label="Close modal"
-              >
-                <XIcon size={20} />
-              </button>
-            </div>
-
-            <div className={styles.modalBody}>
-              <label htmlFor="custom-mood-input" className={styles.modalLabel}>
-                How are you feeling?
-              </label>
-              <input
-                id="custom-mood-input"
-                type="text"
-                autoFocus
-                placeholder="e.g. Hopeful, Grateful, Excited"
-                value={customMoodText}
-                onChange={e => setCustomMoodText(e.target.value)}
-                maxLength={24}
-                className={styles.modalInput}
-              />
-
-              <label className={styles.modalLabel}>Color Accent</label>
-              <div className={styles.colorPalette}>
-                {['#d4637f', '#e07a5f', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'].map(color => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`${styles.colorChip} ${customMoodColor === color ? styles.colorChipSelected : ''}`}
-                    style={{ background: color }}
-                    onClick={() => setCustomMoodColor(color)}
-                    aria-label={`Select color ${color}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.modalFooter}>
-              <button
-                type="button"
-                className={styles.modalCancelBtn}
-                onClick={() => setShowMoodModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.modalSaveBtn}
-                onClick={() => {
-                  if (customMoodText.trim()) {
-                    handleMoodSelect(`${customMoodText.trim()}||${customMoodColor}`)
-                    setShowMoodModal(false)
-                    setCustomMoodText('')
-                  }
-                }}
-                disabled={!customMoodText.trim()}
-              >
-                Save Mood
-              </button>
-            </div>
-          </div>
-        </div>
+      {showMoodDialog && (
+        <CustomMoodDialog onSave={m => void mood.select(m)} onClose={() => setShowMoodDialog(false)} />
       )}
     </div>
   )

@@ -6,7 +6,16 @@ const BASE_URL = import.meta.env.DEV ? '/api' : `${API_BASE}/api`
 
 const getToken = () => localStorage.getItem('token')
 
+// A 401 while holding a token means it expired or its account is gone (e.g. the daily demo
+// reset). Drop it and go to login instead of leaving every page showing errors.
+const handleExpiredSession = (res: Response) => {
+  if (res.status !== 401 || !getToken()) return
+  localStorage.removeItem('token')
+  if (window.location.pathname !== '/login') window.location.assign('/login?session=expired')
+}
+
 const jsonResponse = async (res: Response) => {
+  handleExpiredSession(res)
   const text = await res.text()
   try {
     return JSON.parse(text)
@@ -40,6 +49,18 @@ export const api = {
   patch: async (endpoint: string, body: object) => {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify(body)
+    })
+    return jsonResponse(res)
+  },
+
+  deleteWithBody: async (endpoint: string, body: object) => {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getToken()}`

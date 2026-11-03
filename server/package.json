@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx src/config/seed.ts",
-    "migrate:journal-images": "tsx src/scripts/migrateJournalImages.ts"
+    "migrate:journal-images": "tsx src/scripts/migrateJournalImages.ts",
+    "seed:demo": "tsx src/scripts/seedDemo.ts"
   },
   "keywords": [],
   "author": "",
@@ -32,6 +33,7 @@
     "sanitize-html": "^2.18.1",
     "socket.io": "^4.8.4",
     "streamifier": "^0.1.1",
+    "web-push": "^3.6.7",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -45,6 +47,7 @@
     "@types/sanitize-html": "^2.16.2",
     "@types/streamifier": "^0.1.2",
     "@types/supertest": "^7.2.1",
+    "@types/web-push": "^3.6.4",
     "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.14",
     "socket.io-client": "^4.8.4",

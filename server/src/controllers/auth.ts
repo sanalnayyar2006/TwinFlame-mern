@@ -4,11 +4,10 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/User'
 import { AuthRequest } from '../middleware/auth'
-import { parseBody, registerSchema, loginSchema, googleAuthSchema, linkPartnerSchema, moodSchema } from '../validation/schemas'
-// 6-character couple code from a CSPRNG; no 0/O/1/I so codes are easy to read out loud
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-const generateCoupleCode = (): string =>
-    Array.from(crypto.randomBytes(6), b => CODE_CHARS[b % CODE_CHARS.length]).join('')
+import { generateCoupleCode } from '../utils/coupleCode'
+import { parseBody, registerSchema, loginSchema, googleAuthSchema, linkPartnerSchema, moodSchema, demoLoginSchema } from '../validation/schemas'
+import { getDemoUser } from '../demo/demoCouple'
+
 
 // Browsers only clear a cookie when the clear call uses the same attributes it was set with
 const authCookieOptions = () => ({
@@ -319,5 +318,23 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
   } catch (error) {
     console.error('Google auth error:', error)
     res.status(500).json({ message: 'Failed to authenticate with Google' })
+  }
+}
+
+// Sign in as the shared demo couple. Only exists when DEMO_MODE=true.
+export const demoLogin = async (req: Request, res: Response): Promise<void> => {
+  if (process.env.DEMO_MODE !== 'true') {
+    res.status(404).json({ message: 'API route not found' })
+    return
+  }
+  try {
+    const body = parseBody(demoLoginSchema, req.body, res)
+    if (!body) return
+    const user = await getDemoUser(body.as)
+    const token = sendTokenResponse(user._id.toString(), res)
+    res.status(200).json({ token, user: { id: user._id, name: user.name, coupleCode: user.coupleCode } })
+  } catch (error) {
+    console.error('demoLogin error:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 }

@@ -41,6 +41,9 @@ test('partners see each other live: linking, daily connection, edits, mood @mobi
   // Ben completes without a note; Ana sees it
   await benCard.getByRole('button', { name: 'Mark as done' }).click()
   await expect(anaCard.getByText('Marked as done, no note.')).toBeVisible()
+  // Both answered: the day counts, and Ana's streak appears without a reload
+  await expect(anaCard.getByLabel('1-day streak')).toBeVisible()
+  await expect(benCard.getByLabel('1-day streak')).toBeVisible()
 
   // Mood sync
   await anaPage.getByRole('button', { name: 'Happy' }).click()

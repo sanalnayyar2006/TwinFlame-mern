@@ -56,3 +56,13 @@ test('a stored malicious journal entry does not run in the browser', async ({ pa
   expect(await page.locator('[onerror]').count()).toBe(0)
   expect(dialogs).toBe(0)
 })
+
+test('an expired or revoked token sends you to login with a message', async ({ page }) => {
+  // Set once: an init script would put the token back on every page load
+  await page.goto('/login')
+  await page.evaluate(() => localStorage.setItem('token', 'expired.or.revoked'))
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/login\?session=expired$/)
+  await expect(page.getByText('Your session ended. Sign in again to continue.')).toBeVisible()
+  expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull()
+})

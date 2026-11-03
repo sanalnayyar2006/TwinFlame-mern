@@ -55,7 +55,7 @@
   display: none;
   align-items: center;
   gap: 8px;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   font-size: 0.9rem;
   font-weight: 600;
@@ -67,7 +67,7 @@
 }
 
 .uploadBtn:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
 }
 
 .errorAlert {
@@ -167,7 +167,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   padding: 10px 20px;
   border-radius: var(--radius-sm);
@@ -238,7 +238,7 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   display: flex;
   align-items: center;
@@ -249,7 +249,7 @@
 }
 
 .fab:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
   transform: scale(1.05);
 }
 
@@ -364,7 +364,7 @@
 }
 
 .modalSubmitBtn {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: white;
   padding: 8px 18px;
   border-radius: var(--radius-sm);

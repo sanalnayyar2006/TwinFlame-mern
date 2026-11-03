@@ -142,7 +142,8 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
                 className={`${styles.profileBtn} ${showProfile ? styles.profileBtnActive : ''}`}
                 onClick={() => setShowProfile(prev => !prev)}
                 aria-expanded={showProfile}
-                aria-label="Open profile menu"
+                // Starts with the visible name so voice control ("click Ana") works (WCAG 2.5.3)
+                aria-label={`${userName}, open profile menu`}
               >
                 <div className={styles.profileIconWrap}>
                   <UserIcon size={18} />
@@ -152,7 +153,7 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
 
               {/* Profile Card Popover */}
               {showProfile && (
-                <div className={styles.profilePopover} role="menu">
+                <div className={styles.profilePopover} id="profile-panel-desktop" aria-label="Profile">
                   <div className={styles.popoverHeader}>
                     <div className={styles.popoverAvatar}>
                       {userName.charAt(0).toUpperCase()}
@@ -246,7 +247,7 @@ export const Navigation: React.FC<NavigationProps> = ({ partnerName: propPartner
           </button>
 
           {showProfile && (
-            <div className={styles.mobileProfilePopover} role="menu">
+            <div className={styles.mobileProfilePopover} id="profile-panel-mobile" aria-label="Profile">
               <div className={styles.popoverHeader}>
                 <div className={styles.popoverAvatar}>
                   {userName.charAt(0).toUpperCase()}

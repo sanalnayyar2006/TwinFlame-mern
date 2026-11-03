@@ -1,12 +1,20 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from '../pages/LoginPage'
-import RegisterPage from '../pages/RegisterPage'
-import LinkPartnerPage from '../pages/LinkPartnerPage'
-import DashboardPage from '../pages/DashboardPage'
-import DailyTaskPage from '../pages/DailyTaskPage'
-import JournalPage from '../pages/JournalPage'
-import TruthDarePage from '../pages/TruthDarePage'
-import GalleryPage from '../pages/GalleryPage'
+
+// Login is the entry screen, so it ships in the main bundle; every other page loads on demand
+const RegisterPage = lazy(() => import('../pages/RegisterPage'))
+const LinkPartnerPage = lazy(() => import('../pages/LinkPartnerPage'))
+const DashboardPage = lazy(() => import('../pages/DashboardPage'))
+const JournalPage = lazy(() => import('../pages/JournalPage'))
+const TruthDarePage = lazy(() => import('../pages/TruthDarePage'))
+const GalleryPage = lazy(() => import('../pages/GalleryPage'))
+
+const PageLoading = () => (
+  <p role="status" style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+    Loading…
+  </p>
+)
 const isAuthenticated = () => {
   return !!localStorage.getItem('token')
 }
@@ -21,6 +29,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRouter = () => {
   return (
     <BrowserRouter>
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         {/* Public */}
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -34,11 +43,8 @@ const AppRouter = () => {
             <DashboardPage />
           </ProtectedRoute>
         } />
-        <Route path="/task" element={
-          <ProtectedRoute>
-            <DailyTaskPage />
-          </ProtectedRoute>
-        } />
+        {/* The Daily Connection lives on the dashboard now; keep old links working */}
+        <Route path="/task" element={<Navigate to="/dashboard" replace />} />
         <Route path="/journal" element={
         <ProtectedRoute>
           <JournalPage />
@@ -56,6 +62,7 @@ const AppRouter = () => {
           </ProtectedRoute>
         } />
       </Routes>
+      </Suspense>
       
     </BrowserRouter>
   )

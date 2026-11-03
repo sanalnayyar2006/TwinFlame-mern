@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import request from 'supertest'
 import { useTestApp, registerCouple, registerUser, auth } from './helpers'
+import User from '../src/models/User'
+import DailyConnection from '../src/models/DailyConnection'
 
 const ctx = useTestApp()
 const tz = 'Asia/Kolkata'
@@ -54,5 +56,37 @@ describe('daily connection', () => {
     const solo = await registerUser(ctx.app, 'Solo')
     expect((await complete(solo.token, 'solo')).body.mine.note).toBe('solo')
     expect((await get(solo.token)).body.partner).toBeNull()
+  })
+
+  it('counts a day toward the streak only when both partners answered', async () => {
+    const { a, b } = await registerCouple(ctx.app)
+    expect((await get(a.token)).body.streak).toEqual({ current: 0, best: 0, todayCounts: false })
+    expect((await complete(a.token, 'one')).body.streak.current).toBe(0)
+    const after = (await complete(b.token)).body.streak
+    expect(after).toEqual({ current: 1, best: 1, todayCounts: true })
+    expect((await get(a.token)).body.streak.current).toBe(1)
+  })
+
+  it('includes earlier consecutive days', async () => {
+    const { a, b } = await registerCouple(ctx.app)
+    const today = (await get(a.token)).body.date as string
+    const coupleId = (await User.findOne({ email: a.email }))!.coupleId
+    const ids = (await User.find({ email: { $in: [a.email, b.email] } })).map(u => u._id)
+    const back = (n: number) => new Date(Date.parse(`${today}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10)
+    const both = ids.map(user => ({ user, note: '', completedAt: new Date(), updatedAt: new Date() }))
+    await DailyConnection.insertMany([
+      { coupleKey: coupleId, date: back(1), prompt: 'p', responses: both },
+      { coupleKey: coupleId, date: back(2), prompt: 'p', responses: both },
+      { coupleKey: coupleId, date: back(4), prompt: 'p', responses: both },
+      // Only one partner answered three days ago: breaks the run
+      { coupleKey: coupleId, date: back(3), prompt: 'p', responses: both.slice(0, 1) }
+    ])
+    // Today not done yet: yesterday's run of 2 is still alive
+    expect((await get(a.token)).body.streak).toEqual({ current: 2, best: 2, todayCounts: false })
+  })
+
+  it("counts a solo user's own days", async () => {
+    const solo = await registerUser(ctx.app, 'Solo')
+    expect((await complete(solo.token)).body.streak.current).toBe(1)
   })
 })
