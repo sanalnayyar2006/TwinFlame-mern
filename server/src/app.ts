@@ -10,6 +10,7 @@ import journalRoutes from './routes/journal'
 import truthDareRoutes from './routes/TruthDare'
 import galleryRoutes from './routes/gallery'
 import dailyConnectionRoutes from './routes/dailyConnection'
+import pushRoutes from './routes/push'
 import User from './models/User'
 import { corsOptions, errorHandler, isAllowedOrigin, securityHeaders } from './config/security'
 import { logger, requestLogger } from './config/logger'
@@ -34,6 +35,7 @@ export function createServer() {
   app.use('/api/truth-dare', truthDareRoutes)
   app.use('/api/gallery', galleryRoutes)
   app.use('/api/daily-connection', dailyConnectionRoutes)
+  app.use('/api/push', pushRoutes)
   app.get('/health', (_req, res) => {
     res.json({ status: 'TwinFlame API is running 🔥' })
   })

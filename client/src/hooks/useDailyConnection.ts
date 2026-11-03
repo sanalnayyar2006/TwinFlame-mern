@@ -78,6 +78,8 @@ export function useDailyConnection(myUserId: string | null) {
       return
     }
     setData(prev => (prev ? { ...prev, partner: update.response } : prev))
+    // Their answer can complete today and extend the streak; refresh quietly to pick that up
+    void fetchToday()
   }, [myUserId, fetchToday])
 
   return {

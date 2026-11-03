@@ -18,6 +18,8 @@ To run the demo locally, see [Demo mode](#demo-mode).
 
 - **Partner linking.** Each account gets a 6-character couple code. Entering your partner's code links you. A linked account can't be claimed by anyone else.
 - **Daily Connection.** One question a day, the same for both partners. Mark it done, optionally with a note, and edit the note until the day ends. Your partner's answer appears live.
+- **Streaks.** A day counts when both partners answer. Today never breaks the streak before it ends, and missing a day just starts a new one.
+- **Installable app and notifications.** Add TwinFlame to your home screen, open it offline from the cached app shell, and opt in to a notification when your partner answers. The notification never includes their note, since it can show on a lock screen.
 - **Mood.** Pick a preset or a custom mood with a colour; your partner sees it update live.
 - **Shared journal.** Rich-text entries with inline photos, drafts saved on the device, and infinite scroll.
 - **Gallery.** Shared photos with captions, square thumbnails in the grid, and a full-size viewer.
@@ -47,6 +49,8 @@ flowchart LR
 
 **What "today" means.** Partners in the same time zone use their local day. Partners in different time zones share the UTC day, so they always get the same question. Each browser sends its IANA time zone, and the server compares current UTC offsets (`server/src/utils/dayKey.ts`).
 
+**Offline and push.** A small hand-written service worker (`client/public/sw.js`) caches the app shell and hashed build files, and never caches `/api` or socket traffic, so private data is always fresh. Push uses Web Push with VAPID keys (`web-push`); subscriptions are stored per device and removed when the push service reports them gone.
+
 **Photos.** Images go to Cloudinary, one folder per couple. Removing a photo from an entry or deleting the entry deletes the file too, and cleanup only touches the couple's own folder. Lists load Cloudinary thumbnails, never originals.
 
 **Security.**
@@ -60,8 +64,8 @@ flowchart LR
 
 | Area | Tools |
 |---|---|
-| Client | React 19, TypeScript, Vite, React Router 7, CSS Modules, Socket.IO client, DOMPurify |
-| Server | Node.js 22, Express 5, TypeScript, Socket.IO, Mongoose, Zod, Helmet, express-rate-limit, pino |
+| Client | React 19, TypeScript, Vite, React Router 7, CSS Modules, Socket.IO client, DOMPurify, service worker (PWA) |
+| Server | Node.js 22, Express 5, TypeScript (strict), Socket.IO, Mongoose, Zod, Helmet, express-rate-limit, pino, web-push |
 | Data | MongoDB, Cloudinary |
 | Testing | Vitest, Testing Library, Supertest, mongodb-memory-server, Playwright |
 | Tooling | pnpm workspaces, ESLint, GitHub Actions |
@@ -131,6 +135,7 @@ Set these environment variables on the host:
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Photo storage |
 | `CLIENT_URL` | Only if the client is hosted on a different origin |
 | `DEMO_MODE`, `VITE_DEMO_MODE` | `true` to offer the public demo couple |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional; enables partner-answered notifications (`npx web-push generate-vapid-keys`) |
 
 Leave `VITE_API_URL` unset when the server serves the client. Older journal entries with embedded base64 photos can be moved to Cloudinary with `pnpm --filter server migrate:journal-images` (dry run), then the same command with `--apply`.
 

@@ -58,6 +58,18 @@ export const api = {
     return jsonResponse(res)
   },
 
+  deleteWithBody: async (endpoint: string, body: object) => {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify(body)
+    })
+    return jsonResponse(res)
+  },
+
   // Multipart upload; the browser sets the Content-Type boundary itself
   upload: async (endpoint: string, form: FormData) => {
     const res = await fetch(`${BASE_URL}${endpoint}`, {

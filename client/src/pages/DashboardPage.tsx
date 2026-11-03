@@ -4,6 +4,7 @@ import { useSocket } from '../hooks/useSocket'
 import { useDailyConnection } from '../hooks/useDailyConnection'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useMood } from '../hooks/useMood'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 import { DailyConnectionCard } from '../components/dashboard/DailyConnectionCard'
 import { Navigation } from '../components/Navigation'
 import { MoodSection } from './dashboard/MoodSection'
@@ -19,6 +20,7 @@ const DashboardPage = () => {
   const { user, setUser, recentJournal, recentPhoto, counts, activity, loading, error, reload } = useDashboardData()
   const mood = useMood(user, setUser)
   const dailyConnection = useDailyConnection(user?._id ?? null)
+  const push = usePushNotifications()
 
   // Real-time sync via socket
   useSocket(token, {
@@ -79,6 +81,13 @@ const DashboardPage = () => {
                 onComplete={dailyConnection.complete}
                 onUpdateNote={dailyConnection.updateNote}
                 partnerName={partnerName}
+                push={push.state === 'unavailable' ? undefined : {
+                  state: push.state,
+                  busy: push.busy,
+                  error: push.error,
+                  onEnable: () => void push.enable(),
+                  onDisable: () => void push.disable()
+                }}
               />
 
               <MoodSection
@@ -197,8 +206,7 @@ const DashboardPage = () => {
               </div>
               <div className={styles.statCard}>
                 <FlameIcon size={20} className={styles.statIcon} />
-                {/* [REAL DATA] streaks are not computed yet (planned from Daily Connection history) */}
-                <span className={styles.statValue}>0</span>
+                <span className={styles.statValue}>{dailyConnection.data?.streak.current ?? 0}</span>
                 <span className={styles.statLabel}>Day Streak</span>
               </div>
             </div>

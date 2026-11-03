@@ -1,7 +1,8 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HeartIcon, CheckIcon } from '../Icons'
+import { HeartIcon, CheckIcon, FlameIcon } from '../Icons'
 import { DAILY_NOTE_MAX, type DailyConnection, type DailyResponse } from '../../types/dailyConnection'
+import type { PushState } from '../../hooks/usePushNotifications'
 import styles from './DailyConnectionCard.module.css'
 
 interface DailyConnectionCardProps {
@@ -14,6 +15,8 @@ interface DailyConnectionCardProps {
   onComplete: (note: string) => Promise<boolean>
   onUpdateNote: (note: string) => Promise<boolean>
   partnerName: string | null
+  // Optional "notify me when my partner answers" control; hidden when unavailable
+  push?: { state: PushState; busy: boolean; error: string | null; onEnable: () => void; onDisable: () => void }
 }
 
 const formatTime = (iso: string) =>
@@ -30,7 +33,8 @@ export const DailyConnectionCard = ({
   saveError,
   onComplete,
   onUpdateNote,
-  partnerName
+  partnerName,
+  push
 }: DailyConnectionCardProps) => {
   const noteId = useId()
   const [draft, setDraft] = useState('')
@@ -110,12 +114,20 @@ export const DailyConnectionCard = ({
           <HeartIcon size={16} />
           <span className={styles.label}>Daily Connection</span>
         </div>
-        {mine && (
-          <span className={styles.doneBadge}>
-            <CheckIcon size={14} />
-            Done today
-          </span>
-        )}
+        <div className={styles.badges}>
+          {data.streak.current > 0 && (
+            <span className={styles.streakBadge} aria-label={`${data.streak.current}-day streak`}>
+              <FlameIcon size={14} />
+              {data.streak.current}
+            </span>
+          )}
+          {mine && (
+            <span className={styles.doneBadge}>
+              <CheckIcon size={14} />
+              Done today
+            </span>
+          )}
+        </div>
       </div>
 
       <p className={styles.question}>{data.prompt}</p>
@@ -208,9 +220,28 @@ export const DailyConnectionCard = ({
         )}
 
         {partnerName && !data.partner && (
-          <p className={styles.muted}>
-            Waiting for {partnerName}. Their answer shows up here as soon as they finish.
-          </p>
+          <>
+            <p className={styles.muted}>
+              Waiting for {partnerName}. Their answer shows up here as soon as they finish.
+            </p>
+            {push && push.state === 'off' && (
+              <button type="button" className={styles.linkBtn} onClick={push.onEnable} disabled={push.busy}>
+                {push.busy ? 'Turning on…' : `Notify me when ${partnerName} answers`}
+              </button>
+            )}
+            {push && push.state === 'on' && (
+              <p className={styles.muted}>
+                You'll get a notification when {partnerName} answers.{' '}
+                <button type="button" className={styles.inlineButton} onClick={push.onDisable} disabled={push.busy}>
+                  Turn off
+                </button>
+              </p>
+            )}
+            {push && push.state === 'blocked' && (
+              <p className={styles.muted}>Notifications are blocked for TwinFlame in your browser settings.</p>
+            )}
+            {push?.error && <p className={styles.errorText} role="alert">{push.error}</p>}
+          </>
         )}
 
         {partnerName && data.partner && (
@@ -231,6 +262,14 @@ export const DailyConnectionCard = ({
           </div>
         )}
       </div>
+
+      {data.streak.current > 0 && !data.streak.todayCounts && (
+        <p className={styles.clockNote}>
+          {partnerName
+            ? `When you both answer today, your streak grows to ${data.streak.current + 1} days.`
+            : `Answer today to make it ${data.streak.current + 1} days in a row.`}
+        </p>
+      )}
 
       {data.sharedClock && partnerName && (
         <p className={styles.clockNote}>

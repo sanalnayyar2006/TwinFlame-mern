@@ -40,8 +40,9 @@ export function useDashboardData() {
         ...(journals?.items ?? []).map(e => ({ type: 'journal' as const, text: `New journal: ${e.title}`, date: e.createdAt })),
         ...(photos?.items ?? []).map(img => ({ type: 'photo' as const, text: img.caption || 'New photo added', date: img.createdAt }))
       ].sort((x, y) => y.date.localeCompare(x.date)))
-    } catch {
-      setError('Unable to load profile data.')
+    } catch (err) {
+      // The service gives a plain reason, e.g. "Couldn't reach TwinFlame..." when offline
+      setError((err as Error).message || 'Unable to load your dashboard.')
     } finally {
       setLoading(false)
     }

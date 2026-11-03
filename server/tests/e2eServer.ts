@@ -18,6 +18,11 @@ Object.assign(process.env, {
 })
 
 const main = async () => {
+  // Real VAPID keys so the client shows the notification opt-in; nothing is ever sent to a push service
+  const { generateVAPIDKeys } = (await import('web-push')).default
+  const vapid = generateVAPIDKeys()
+  process.env.VAPID_PUBLIC_KEY = vapid.publicKey
+  process.env.VAPID_PRIVATE_KEY = vapid.privateKey
   const mongo = await MongoMemoryServer.create()
   await mongoose.connect(mongo.getUri(), { dbName: 'e2e' })
   const { createServer } = await import('../src/app')

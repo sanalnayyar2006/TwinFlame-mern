@@ -44,6 +44,19 @@ export const demoLoginSchema = z.object({
   as: z.enum(['ana', 'ben'], { error: 'Choose Ana or Ben' })
 })
 
+// Browser PushSubscription.toJSON(); endpoints are always https on real push services
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/, error: 'Invalid push endpoint' }).max(2048),
+  keys: z.object({
+    p256dh: z.string().min(1).max(256),
+    auth: z.string().min(1).max(256)
+  })
+})
+
+export const pushUnsubscribeSchema = z.object({
+  endpoint: z.string().min(1).max(2048)
+})
+
 export const journalCreateSchema = z.object({
   title: z.string({ error: 'Title and content required' }).trim().min(1, 'Title and content required').max(200),
   content: z.string({ error: 'Title and content required' }).min(1, 'Title and content required').max(5_000_000),
